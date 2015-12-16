@@ -7,12 +7,12 @@
 #include "curve.h"
 #include "widgets.h"
 
+int win_width, win_height;
+float win_aspect;
+
 static void draw_grid(float sz, float sep, float alpha = 1.0f);
 static void draw_curve(const Curve *curve);
 static void on_click(int bn, float u, float v);
-
-static int win_width, win_height;
-static float win_aspect;
 
 static float view_pan_x, view_pan_y;
 static float view_scale = 1.0f;
@@ -41,7 +41,7 @@ void app_cleanup()
 
 void app_draw()
 {
-	glClearColor(0.16, 0.16, 0.16, 1);
+	glClearColor(0.1, 0.1, 0.1, 1);
 	glClear(GL_COLOR_BUFFER_BIT);
 
 	glMatrixMode(GL_MODELVIEW);
@@ -75,7 +75,7 @@ static void draw_grid(float sz, float sep, float alpha)
 	glColor4f(0.2, 0.3, 0.6, alpha);
 	glVertex2f(0, -sz);
 	glVertex2f(0, sz);
-	glColor4f(0.4, 0.4, 0.4, alpha);
+	glColor4f(0.35, 0.35, 0.35, alpha);
 	while(x < sz) {
 		x += sep;
 		glVertex2f(-sz, x);
@@ -95,14 +95,15 @@ static void draw_curve(const Curve *curve)
 	int numpt = curve->get_point_count();
 	int segm = numpt * 16.0f;
 
-	glBegin(GL_LINE_STRIP);
+	glLineWidth(2.0);
 	if(curve == sel_curve) {
-		glLineWidth(3.0);
-		glColor3f(0.2, 0.8, 0.3);
+		glColor3f(0.3, 0.4, 1.0);
+	} else if(curve == new_curve) {
+		glColor3f(1.0, 0.75, 0.3);
 	} else {
-		glLineWidth(2.0);
-		glColor3f(0.8, 0.75, 0.3);
+		glColor3f(0.75, 0.75, 0.75);
 	}
+	glBegin(GL_LINE_STRIP);
 	for(int i=0; i<segm; i++) {
 		float t = (float)i / (float)(segm - 1);
 		Vector2 v = curve->interpolate(t);
@@ -111,10 +112,21 @@ static void draw_curve(const Curve *curve)
 	glEnd();
 	glLineWidth(1.0);
 
-	glPointSize(5.0);
+	glPointSize(7.0);
 	glBegin(GL_POINTS);
-	glColor3f(1.0, 0.5, 0.2);
+	if(curve == new_curve) {
+		glColor3f(1.0, 0.0, 0.0);
+	} else {
+		glColor3f(0.6, 0.3, 0.2);
+	}
 	for(int i=0; i<numpt; i++) {
+		if(curve == sel_curve) {
+			if(i == sel_pidx) {
+				glColor3f(1.0, 0.2, 0.1);
+			} else {
+				glColor3f(0.2, 1.0, 0.2);
+			}
+		}
 		Vector2 pt = curve->get_point(i);
 		glVertex2f(pt.x, pt.y);
 	}
@@ -138,13 +150,26 @@ void app_keyboard(int key, bool pressed)
 {
 	if(pressed) {
 		switch(key) {
-		case 27:
+		case 'q':
+		case 'Q':
 			exit(0);
+
+		case 27:
+			if(new_curve) {
+				delete new_curve;
+				new_curve = 0;
+				post_redisplay();
+			}
+			break;
 
 		case 'l':
 		case 'L':
 			if(sel_curve) {
 				sel_curve->set_type(CURVE_LINEAR);
+				post_redisplay();
+			}
+			if(new_curve) {
+				new_curve->set_type(CURVE_LINEAR);
 				post_redisplay();
 			}
 			break;
@@ -155,12 +180,20 @@ void app_keyboard(int key, bool pressed)
 				sel_curve->set_type(CURVE_BSPLINE);
 				post_redisplay();
 			}
+			if(new_curve) {
+				new_curve->set_type(CURVE_BSPLINE);
+				post_redisplay();
+			}
 			break;
 
 		case 'h':
 		case 'H':
 			if(sel_curve) {
 				sel_curve->set_type(CURVE_HERMITE);
+				post_redisplay();
+			}
+			if(new_curve) {
+				new_curve->set_type(CURVE_HERMITE);
 				post_redisplay();
 			}
 			break;
@@ -213,7 +246,7 @@ void app_mouse_button(int bn, bool pressed, int x, int y)
 
 static void hover(int x, int y)
 {
-	float thres = pixel_to_uv(5, 0).x - pixel_to_uv(0, 0).x;
+	float thres = 0.02;
 
 	Vector2 uv = pixel_to_uv(x, y);
 	for(size_t i=0; i<curves.size(); i++) {
@@ -255,7 +288,7 @@ void app_mouse_motion(int x, int y)
 
 		if(bnstate & BNBIT(2)) {
 			float w = sel_curve->get_weight(sel_pidx);
-			w -= dy * 0.1;
+			w -= dy * 0.01;
 			if(w < FLT_MIN) w = FLT_MIN;
 			sel_curve->set_weight(sel_pidx, w);
 

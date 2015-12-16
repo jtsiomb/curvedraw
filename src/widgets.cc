@@ -12,11 +12,10 @@ static void init_font()
 {
 	if(font) return;
 
-	if(!(font = dtx_open_font("data/droid_sans.ttf", 16))) {
+	if(!(font = dtx_open_font("data/droid_sans.ttf", 24))) {
 		fprintf(stderr, "failed to load font\n");
 		abort();
 	}
-	dtx_use_font(font, 16);
 }
 
 Widget::Widget()
@@ -41,18 +40,21 @@ const Vector2 &Widget::get_position() const
 
 void Widget::set_text(const char *str)
 {
-	text = new char[strlen(str) + 1];
-	strcpy(text, str);
+	char *newtext = new char[strlen(str) + 1];
+	strcpy(newtext, str);
+
+	delete [] text;
+	text = newtext;
 }
 
 void Widget::set_textf(const char *str, ...)
 {
 	va_list ap;
 	int sz = strlen(str) * 4;
-	char *buf = (char*)alloca(sz);
+	char *buf = (char*)alloca(sz + 1);
 
 	va_start(ap, str);
-	vsnprintf(buf, sz - 1, text, ap);
+	vsnprintf(buf, sz, str, ap);
 	va_end(ap);
 
 	set_text(buf);
@@ -72,8 +74,9 @@ void Label::draw() const
 	glMatrixMode(GL_MODELVIEW);
 	glPushMatrix();
 	glTranslatef(pos.x, pos.y, 0);
-	glScalef(0.1, 0.1, 1);
+	glScalef(0.003, 0.003, 1);
 
+	glColor4f(1, 1, 1, 1);
 	dtx_string(text);
 	dtx_flush();
 

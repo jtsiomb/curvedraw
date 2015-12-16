@@ -1,6 +1,9 @@
 #ifndef APP_H_
 #define APP_H_
 
+extern int win_width, win_height;
+extern float win_aspect;
+
 bool app_init(int argc, char **argv);
 void app_cleanup();
 
