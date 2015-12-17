@@ -353,7 +353,42 @@ static Vector2 snap(const Vector2 &p)
 	case SNAP_GRID:
 		return Vector2(round(p.x / grid_size) * grid_size, round(p.y / grid_size) * grid_size);
 	case SNAP_POINT:
-		// TODO
+		{
+			Curve *nearest_curve = 0;
+			int nearest_curve_pidx = -1;
+			float nearest_dist_sq = FLT_MAX;
+
+			if(new_curve) {
+				// find the closest point, ignoring the last
+				for(int i=0; i<new_curve->size() - 1; i++) {
+					Vector2 cp = new_curve->get_point(i);
+					float distsq = (cp - p).length_sq();
+					if(distsq < nearest_dist_sq) {
+						nearest_curve = new_curve;
+						nearest_dist_sq = distsq;
+						nearest_curve_pidx = i;
+					}
+				}
+			}
+
+
+			for(size_t i=0; i<curves.size(); i++) {
+				int pidx = curves[i]->nearest_point(p);
+				Vector2 cp = curves[i]->get_point(pidx);
+				float dist_sq = (cp - p).length_sq();
+				if(dist_sq < nearest_dist_sq) {
+					nearest_curve = curves[i];
+					nearest_curve_pidx = pidx;
+					nearest_dist_sq = dist_sq;
+				}
+			}
+
+			if(nearest_curve) {
+				return nearest_curve->get_point(nearest_curve_pidx);
+			}
+		}
+		break;
+
 	default:
 		break;
 	}
