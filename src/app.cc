@@ -79,9 +79,6 @@ void app_draw()
 	if(new_curve) {
 		draw_curve(new_curve);
 	}
-	if(weight_label) {
-		weight_label->draw();
-	}
 
 #ifdef DRAW_MOUSE_POINTER
 	glPointSize(6.0);
@@ -90,6 +87,13 @@ void app_draw()
 	glVertex2f(mouse_pointer.x, mouse_pointer.y);
 	glEnd();
 #endif
+
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+
+	if(weight_label) {
+		weight_label->draw();
+	}
 }
 
 static void draw_grid(float sz, float sep, float alpha)
@@ -379,11 +383,9 @@ void app_mouse_motion(int x, int y)
 	if(new_curve) {
 		new_curve->move_point(new_curve->size() - 1, snap(uv));
 		post_redisplay();
-		return;
 	}
-	// from this point on we're definitely not in new-curve mode
 
-	if(!bnstate) {
+	if(!new_curve && !bnstate) {
 		// not dragging, highlight curve under mouse
 		point_hit_test(uv, &hover_curve, &sel_pidx);
 		post_redisplay();

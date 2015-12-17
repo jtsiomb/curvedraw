@@ -43,9 +43,6 @@ public:
 	Vector2 interpolate(float t, CurveType type) const;
 	Vector2 interpolate(float t) const;
 	Vector2 operator ()(float t) const;
-
-	void draw(int res = -1) const;
-	void draw_cp(float sz = -1.0f) const;
 };
 
 #endif	// CURVE_H_
