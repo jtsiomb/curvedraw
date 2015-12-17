@@ -15,8 +15,6 @@ private:
 	std::vector<Vector3> cp;
 	CurveType type;
 
-	float map_param(float x) const;
-
 public:
 	Curve(CurveType type = CURVE_HERMITE);
 
@@ -28,17 +26,26 @@ public:
 
 	int nearest_point(const Vector2 &p);
 
-	int get_point_count() const;
+	bool empty() const;
+	int size() const;
+	Vector3 &operator [](int idx);
+	const Vector3 &operator [](int idx) const;
+
 	const Vector3 &get_homo_point(int idx) const;	// homogeneous point
 	Vector2 get_point(int idx) const;
 	float get_weight(int idx) const;
 
 	bool set_point(int idx, const Vector2 &p, float weight = 1.0f);
 	bool set_weight(int idx, float weight);
+	// move point without changing its weight
+	bool move_point(int idx, const Vector2 &p);
 
 	Vector2 interpolate(float t, CurveType type) const;
 	Vector2 interpolate(float t) const;
 	Vector2 operator ()(float t) const;
+
+	void draw(int res = -1) const;
+	void draw_cp(float sz = -1.0f) const;
 };
 
 #endif	// CURVE_H_

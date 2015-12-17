@@ -46,9 +46,24 @@ int Curve::nearest_point(const Vector2 &p)
 	return res;
 }
 
-int Curve::get_point_count() const
+bool Curve::empty() const
+{
+	return cp.empty();
+}
+
+int Curve::size() const
 {
 	return (int)cp.size();
+}
+
+Vector3 &Curve::operator [](int idx)
+{
+	return cp[idx];
+}
+
+const Vector3 &Curve::operator [](int idx) const
+{
+	return cp[idx];
 }
 
 const Vector3 &Curve::get_homo_point(int idx) const
@@ -84,18 +99,28 @@ bool Curve::set_weight(int idx, float weight)
 	return true;
 }
 
+bool Curve::move_point(int idx, const Vector2 &p)
+{
+	if(idx < 0 || idx >= (int)cp.size()) {
+		return false;
+	}
+	cp[idx] = Vector3(p.x, p.y, cp[idx].z);
+	return true;
+}
+
 Vector2 Curve::interpolate(float t, CurveType type) const
 {
-	int num_cp = (int)cp.size();
-	if(!num_cp) {
+	if(cp.empty()) {
 		return Vector2(0, 0);
 	}
+
+	int num_cp = (int)cp.size();
 	if(num_cp == 1) {
 		return Vector2(cp[0].x, cp[0].y);
 	}
 
 	Vector3 res;
-	int idx0 = (int)floor(t * (num_cp - 1));
+	int idx0 = std::min((int)floor(t * (num_cp - 1)), num_cp - 2);
 	int idx1 = idx0 + 1;
 
 	float dt = 1.0 / (float)(num_cp - 1);
@@ -134,11 +159,4 @@ Vector2 Curve::interpolate(float t) const
 Vector2 Curve::operator ()(float t) const
 {
 	return interpolate(t);
-}
-
-float Curve::map_param(float x) const
-{
-	if(x < 0.0f) x = 0.0f;
-	if(x >= 1.0f) x = 1.0f;
-	return x * ((float)cp.size() - 1);
 }

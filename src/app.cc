@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <float.h>
+#include <assert.h>
 #include <vector>
 #include <algorithm>
 #include "opengl.h"
@@ -14,20 +15,26 @@ static void draw_grid(float sz, float sep, float alpha = 1.0f);
 static void draw_curve(const Curve *curve);
 static void on_click(int bn, float u, float v);
 
-static float view_pan_x, view_pan_y;
+// viewport control
+static Vector2 view_pan;
 static float view_scale = 1.0f;
 
 static std::vector<Curve*> curves;
-static Curve *sel_curve, *new_curve;
-static int sel_pidx = -1;
+static Curve *sel_curve;	// selected curve being edited
+static Curve *new_curve;	// new curve being entered
+static Curve *hover_curve;	// curve the mouse is hovering over (click to select)
+static int sel_pidx = -1;	// selected point of the selected or hovered-over curve
 
-static Label *weight_label;
+static Label *weight_label;	// floating label for the cp weight
 
 
 bool app_init(int argc, char **argv)
 {
 	glEnable(GL_MULTISAMPLE);
 	glEnable(GL_CULL_FACE);
+
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	return true;
 }
 
@@ -46,7 +53,7 @@ void app_draw()
 
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
-	glTranslatef(-view_pan_x, -view_pan_y, 0);
+	glTranslatef(-view_pan.x, -view_pan.y, 0);
 	glScalef(view_scale, view_scale, view_scale);
 
 	draw_grid(std::max(win_aspect, 1.0f / win_aspect), 0.1);
@@ -55,7 +62,6 @@ void app_draw()
 		draw_curve(curves[i]);
 	}
 	if(new_curve) {
-		// TODO special drawing with more feedback
 		draw_curve(new_curve);
 	}
 	if(weight_label) {
@@ -92,16 +98,30 @@ static void draw_grid(float sz, float sep, float alpha)
 
 static void draw_curve(const Curve *curve)
 {
-	int numpt = curve->get_point_count();
-	int segm = numpt * 16.0f;
+	int numpt = curve->size();
+	int segm = numpt * 16;
 
-	glLineWidth(2.0);
+	/*if(curve == hover_curve) {
+		glLineWidth(3.0);
+		glColor4f(0.8, 0.8, 0.0, 1.0);
+
+		glBegin(GL_LINE_STRIP);
+		for(int i=0; i<segm; i++) {
+			float t = (float)i / (float)(segm - 1);
+			Vector2 v = curve->interpolate(t);
+			glVertex2f(v.x, v.y);
+		}
+		glEnd();
+	}
+	*/
+
+	glLineWidth(curve == hover_curve ? 4.0 : 2.0);
 	if(curve == sel_curve) {
 		glColor3f(0.3, 0.4, 1.0);
 	} else if(curve == new_curve) {
 		glColor3f(1.0, 0.75, 0.3);
 	} else {
-		glColor3f(0.75, 0.75, 0.75);
+		glColor3f(0.6, 0.6, 0.6);
 	}
 	glBegin(GL_LINE_STRIP);
 	for(int i=0; i<segm; i++) {
@@ -112,7 +132,7 @@ static void draw_curve(const Curve *curve)
 	glEnd();
 	glLineWidth(1.0);
 
-	glPointSize(7.0);
+	glPointSize(curve == hover_curve ? 10.0 : 7.0);
 	glBegin(GL_POINTS);
 	if(curve == new_curve) {
 		glColor3f(1.0, 0.0, 0.0);
@@ -244,25 +264,24 @@ void app_mouse_button(int bn, bool pressed, int x, int y)
 	}
 }
 
-static void hover(int x, int y)
+static bool point_hit_test(const Vector2 &pos, Curve **curveret, int *pidxret)
 {
 	float thres = 0.02;
 
-	Vector2 uv = pixel_to_uv(x, y);
 	for(size_t i=0; i<curves.size(); i++) {
-		int pidx = curves[i]->nearest_point(uv);
+		int pidx = curves[i]->nearest_point(pos);
 		if(pidx == -1) continue;
 
 		Vector2 cp = curves[i]->get_point(pidx);
-		if((cp - uv).length_sq() < thres * thres) {
-			sel_curve = curves[i];
-			sel_pidx = pidx;
-			return;
+		if((cp - pos).length_sq() < thres * thres) {
+			*curveret = curves[i];
+			*pidxret = pidx;
+			return true;
 		}
 	}
-
-	sel_curve = 0;
-	sel_pidx = -1;
+	*curveret = 0;
+	*pidxret = -1;
+	return false;
 }
 
 void app_mouse_motion(int x, int y)
@@ -274,15 +293,25 @@ void app_mouse_motion(int x, int y)
 
 	if(!dx && !dy) return;
 
+	Vector2 uv = pixel_to_uv(x, y);
+
+	/* when entering a new curve, have the last (extra) point following
+	 * the mouse until it's entered by a click (see on_click).
+	 */
+	if(new_curve && !new_curve->empty()) {
+		new_curve->move_point(new_curve->size() - 1, uv);
+		post_redisplay();
+	}
+
 	if(!new_curve && !bnstate) {
-		hover(x, y);
+		point_hit_test(uv, &hover_curve, &sel_pidx);
 		post_redisplay();
 	}
 
 	if(sel_curve && sel_pidx != -1) {
 		if(bnstate & BNBIT(0)) {
 			float w = sel_curve->get_weight(sel_pidx);
-			sel_curve->set_point(sel_pidx, pixel_to_uv(x, y), w);
+			sel_curve->set_point(sel_pidx, uv, w);
 			post_redisplay();
 		}
 
@@ -295,7 +324,7 @@ void app_mouse_motion(int x, int y)
 			if(!weight_label) {
 				weight_label = new Label;
 			}
-			weight_label->set_position(pixel_to_uv(x, y));
+			weight_label->set_position(uv);
 			weight_label->set_textf("w=%g", w);
 			post_redisplay();
 		}
@@ -304,18 +333,59 @@ void app_mouse_motion(int x, int y)
 
 static void on_click(int bn, float u, float v)
 {
+	Vector2 uv = Vector2(u, v);
+
 	switch(bn) {
-	case 0:
-		if(!new_curve) {
-			new_curve = new Curve;
+	case 0:	// ------- LEFT CLICK ------
+		if(hover_curve) {
+			// if we're hovering: click selects
+			sel_curve = hover_curve;
+			hover_curve = 0;
+		} else if(sel_curve) {
+			// if we have a selected curve: click adds point (enter new_curve mode)
+			std::vector<Curve*>::iterator it = std::find(curves.begin(), curves.end(), sel_curve);
+			assert(it != curves.end());
+			curves.erase(it, it + 1);
+
+			new_curve = sel_curve;
+			sel_curve = 0;
+			sel_pidx = -1;
+
+			new_curve->add_point(uv);
+		} else {
+			// otherwise, click starts a new curve
+			if(!new_curve) {
+				new_curve = new Curve;
+				new_curve->add_point(uv);
+			}
+			new_curve->add_point(uv);
 		}
-		new_curve->add_point(Vector2(u, v));
 		post_redisplay();
 		break;
 
-	case 2:
-		curves.push_back(new_curve);
-		new_curve = 0;
+	case 2:	// ------- RIGHT CLICK ------
+		if(new_curve) {
+			// in new-curve mode: finish curve (cancels last floating segment)
+			new_curve->remove_point(new_curve->size() - 1);
+			if(new_curve->empty()) {
+				delete new_curve;
+			} else {
+				curves.push_back(new_curve);
+			}
+			new_curve = 0;
+
+		} else if(sel_curve) {
+			// in selected curve mode: delete control point or unselect
+			Curve *hit_curve;
+			int hit_pidx;
+			if(point_hit_test(uv, &hit_curve, &hit_pidx) && hit_curve == sel_curve) {
+				hit_curve->remove_point(hit_pidx);
+				sel_pidx = -1;
+			} else {
+				sel_curve = 0;
+				sel_pidx = -1;
+			}
+		}
 		post_redisplay();
 		break;
 
