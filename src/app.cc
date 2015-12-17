@@ -8,6 +8,12 @@
 #include "curve.h"
 #include "widgets.h"
 
+enum SnapMode {
+	SNAP_NONE,
+	SNAP_GRID,
+	SNAP_POINT
+};
+
 int win_width, win_height;
 float win_aspect;
 
@@ -17,7 +23,11 @@ static void on_click(int bn, float u, float v);
 
 // viewport control
 static Vector2 view_pan;
-static float view_scale = 1.0f;
+static float view_scale = 0.2f;
+static Matrix4x4 view_matrix;
+
+static float grid_size = 1.0;
+static SnapMode snap_mode;
 
 static std::vector<Curve*> curves;
 static Curve *sel_curve;	// selected curve being edited
@@ -26,6 +36,10 @@ static Curve *hover_curve;	// curve the mouse is hovering over (click to select)
 static int sel_pidx = -1;	// selected point of the selected or hovered-over curve
 
 static Label *weight_label;	// floating label for the cp weight
+
+#ifdef DRAW_MOUSE_POINTER
+static Vector2 mouse_pointer;
+#endif
 
 
 bool app_init(int argc, char **argv)
@@ -53,10 +67,11 @@ void app_draw()
 
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
-	glTranslatef(-view_pan.x, -view_pan.y, 0);
+	glTranslatef(view_pan.x * view_scale, view_pan.y * view_scale, 0);
 	glScalef(view_scale, view_scale, view_scale);
 
-	draw_grid(std::max(win_aspect, 1.0f / win_aspect), 0.1);
+	float max_aspect = std::max(win_aspect, 1.0f / win_aspect);
+	draw_grid(max_aspect, grid_size);
 
 	for(size_t i=0; i<curves.size(); i++) {
 		draw_curve(curves[i]);
@@ -67,53 +82,67 @@ void app_draw()
 	if(weight_label) {
 		weight_label->draw();
 	}
+
+#ifdef DRAW_MOUSE_POINTER
+	glPointSize(6.0);
+	glBegin(GL_POINTS);
+	glColor3f(0, 0, 1);
+	glVertex2f(mouse_pointer.x, mouse_pointer.y);
+	glEnd();
+#endif
 }
 
 static void draw_grid(float sz, float sep, float alpha)
 {
 	float x = 0.0f;
+	float s = 1.0 / view_scale;
+
+	sz *= s;
+	sz += sep;	// one more step for when we have non-zero fractional pan
+	float end = std::min(sz, 100.0f * sep);
+
+	// fractional pan
+	Vector2 pan = view_pan;
+	Vector2 fpan = Vector2(fmod(pan.x, sep), fmod(pan.y, sep));
+	Vector2 offset = fpan - pan;
+
+	glMatrixMode(GL_MODELVIEW);
+	glPushMatrix();
+	glTranslatef(offset.x, offset.y, 0);
+
+	glBegin(GL_LINES);
+	glColor4f(0.35, 0.35, 0.35, alpha);
+	while(x <= end) {
+		glVertex2f(-end, x);
+		glVertex2f(end, x);
+		glVertex2f(-end, -x);
+		glVertex2f(end, -x);
+		glVertex2f(x, -end);
+		glVertex2f(x, end);
+		glVertex2f(-x, -end);
+		glVertex2f(-x, end);
+		x += sep;
+	}
+	glEnd();
+	glPopMatrix();
+
 
 	glLineWidth(1.0);
 	glBegin(GL_LINES);
 	glColor4f(0.6, 0.3, 0.2, alpha);
-	glVertex2f(-sz, 0);
-	glVertex2f(sz, 0);
+	glVertex2f(-sz + offset.x, 0);
+	glVertex2f(sz + offset.x, 0);
 	glColor4f(0.2, 0.3, 0.6, alpha);
-	glVertex2f(0, -sz);
-	glVertex2f(0, sz);
-	glColor4f(0.35, 0.35, 0.35, alpha);
-	while(x < sz) {
-		x += sep;
-		glVertex2f(-sz, x);
-		glVertex2f(sz, x);
-		glVertex2f(-sz, -x);
-		glVertex2f(sz, -x);
-		glVertex2f(x, -sz);
-		glVertex2f(x, sz);
-		glVertex2f(-x, -sz);
-		glVertex2f(-x, sz);
-	}
+	glVertex2f(0, -sz + offset.y);
+	glVertex2f(0, sz + offset.y);
 	glEnd();
+
 }
 
 static void draw_curve(const Curve *curve)
 {
 	int numpt = curve->size();
 	int segm = numpt * 16;
-
-	/*if(curve == hover_curve) {
-		glLineWidth(3.0);
-		glColor4f(0.8, 0.8, 0.0, 1.0);
-
-		glBegin(GL_LINE_STRIP);
-		for(int i=0; i<segm; i++) {
-			float t = (float)i / (float)(segm - 1);
-			Vector2 v = curve->interpolate(t);
-			glVertex2f(v.x, v.y);
-		}
-		glEnd();
-	}
-	*/
 
 	glLineWidth(curve == hover_curve ? 4.0 : 2.0);
 	if(curve == sel_curve) {
@@ -219,13 +248,43 @@ void app_keyboard(int key, bool pressed)
 			break;
 		}
 	}
+
+
+	switch(key) {
+	case 's':
+		snap_mode = pressed ? SNAP_GRID : SNAP_NONE;
+		break;
+
+	case 'S':
+		snap_mode = pressed ? SNAP_POINT : SNAP_NONE;
+		break;
+
+	default:
+		break;
+	}
+}
+
+static void calc_view_matrix()
+{
+	view_matrix.reset_identity();
+	view_matrix.scale(Vector3(view_scale, view_scale, view_scale));
+	view_matrix.translate(Vector3(view_pan.x, view_pan.y, 0.0));
 }
 
 static Vector2 pixel_to_uv(int x, int y)
 {
 	float u = win_aspect * (2.0 * (float)x / (float)win_width - 1.0);
 	float v = 1.0 - 2.0 * (float)y / (float)win_height;
+
+	u = u / view_scale - view_pan.x;
+	v = v / view_scale - view_pan.y;
 	return Vector2(u, v);
+	/*
+	Matrix4x4 inv_view_matrix = view_matrix.inverse();
+	Vector4 res = Vector4(u, v, 0.0, 1.0).transformed(inv_view_matrix);
+
+	return Vector2(res.x, res.y);
+	*/
 }
 
 static int prev_x, prev_y;
@@ -266,7 +325,7 @@ void app_mouse_button(int bn, bool pressed, int x, int y)
 
 static bool point_hit_test(const Vector2 &pos, Curve **curveret, int *pidxret)
 {
-	float thres = 0.02;
+	float thres = 0.02 / view_scale;
 
 	for(size_t i=0; i<curves.size(); i++) {
 		int pidx = curves[i]->nearest_point(pos);
@@ -284,8 +343,23 @@ static bool point_hit_test(const Vector2 &pos, Curve **curveret, int *pidxret)
 	return false;
 }
 
+static Vector2 snap(const Vector2 &p)
+{
+	switch(snap_mode) {
+	case SNAP_GRID:
+		return Vector2(round(p.x / grid_size) * grid_size, round(p.y / grid_size) * grid_size);
+	case SNAP_POINT:
+		// TODO
+	default:
+		break;
+	}
+	return p;
+}
+
 void app_mouse_motion(int x, int y)
 {
+	Vector2 prev_uv = pixel_to_uv(prev_x, prev_y);
+
 	int dx = x - prev_x;
 	int dy = y - prev_y;
 	prev_x = x;
@@ -294,39 +368,70 @@ void app_mouse_motion(int x, int y)
 	if(!dx && !dy) return;
 
 	Vector2 uv = pixel_to_uv(x, y);
+#ifdef DRAW_MOUSE_POINTER
+	mouse_pointer = uv;
+	post_redisplay();
+#endif
 
 	/* when entering a new curve, have the last (extra) point following
 	 * the mouse until it's entered by a click (see on_click).
 	 */
-	if(new_curve && !new_curve->empty()) {
-		new_curve->move_point(new_curve->size() - 1, uv);
+	if(new_curve) {
+		new_curve->move_point(new_curve->size() - 1, snap(uv));
 		post_redisplay();
+		return;
 	}
+	// from this point on we're definitely not in new-curve mode
 
-	if(!new_curve && !bnstate) {
+	if(!bnstate) {
+		// not dragging, highlight curve under mouse
 		point_hit_test(uv, &hover_curve, &sel_pidx);
 		post_redisplay();
-	}
 
-	if(sel_curve && sel_pidx != -1) {
-		if(bnstate & BNBIT(0)) {
-			float w = sel_curve->get_weight(sel_pidx);
-			sel_curve->set_point(sel_pidx, uv, w);
-			post_redisplay();
-		}
+	} else {
+		// we're dragging with one or more buttons held down
 
-		if(bnstate & BNBIT(2)) {
-			float w = sel_curve->get_weight(sel_pidx);
-			w -= dy * 0.01;
-			if(w < FLT_MIN) w = FLT_MIN;
-			sel_curve->set_weight(sel_pidx, w);
+		if(sel_curve && sel_pidx != -1) {
+			// we have a curve and a point of the curve selected
 
-			if(!weight_label) {
-				weight_label = new Label;
+			if(bnstate & BNBIT(0)) {
+				// dragging point with left button: move it
+				sel_curve->move_point(sel_pidx, snap(uv));
+				post_redisplay();
 			}
-			weight_label->set_position(uv);
-			weight_label->set_textf("w=%g", w);
-			post_redisplay();
+
+			if(bnstate & BNBIT(2)) {
+				// dragging point with right button: change weight
+				float w = sel_curve->get_weight(sel_pidx);
+				w -= dy * 0.01;
+				if(w < FLT_MIN) w = FLT_MIN;
+				sel_curve->set_weight(sel_pidx, w);
+
+				// popup floating weight label if not already there
+				if(!weight_label) {
+					weight_label = new Label;
+				}
+				weight_label->set_position(uv);
+				weight_label->set_textf("w=%g", w);
+				post_redisplay();
+			}
+		} else {
+			// no selection, we're dragging in empty space: manipulate viewport
+			Vector2 dir = uv - prev_uv;
+
+			if(bnstate & (BNBIT(0) | BNBIT(1))) {
+				// panning
+				view_pan += dir;
+				calc_view_matrix();
+				post_redisplay();
+			}
+			if(bnstate & BNBIT(2)) {
+				// zooming
+				view_scale -= ((float)dy / (float)win_height) * view_scale * 5.0;
+				if(view_scale < 1e-4) view_scale = 1e-4;
+				calc_view_matrix();
+				post_redisplay();
+			}
 		}
 	}
 }
