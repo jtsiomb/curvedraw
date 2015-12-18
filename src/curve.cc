@@ -1,4 +1,5 @@
 #include <float.h>
+#include <algorithm>
 #include "curve.h"
 
 Curve::Curve(CurveType type)
