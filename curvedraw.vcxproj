@@ -82,12 +82,14 @@
   <ItemGroup>
     <ClCompile Include="src\app.cc" />
     <ClCompile Include="src\curve.cc" />
+    <ClCompile Include="src\curvefile.cc" />
     <ClCompile Include="src\main.cc" />
     <ClCompile Include="src\widgets.cc" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\app.h" />
     <ClInclude Include="src\curve.h" />
+    <ClInclude Include="src\curvefile.h" />
     <ClInclude Include="src\opengl.h" />
     <ClInclude Include="src\widgets.h" />
   </ItemGroup>

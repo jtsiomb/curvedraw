@@ -7,6 +7,7 @@
 #include "app.h"
 #include "curve.h"
 #include "widgets.h"
+#include "curvefile.h"
 
 enum SnapMode {
 	SNAP_NONE,
@@ -251,6 +252,15 @@ void app_keyboard(int key, bool pressed)
 				new_curve->set_type(CURVE_HERMITE);
 				post_redisplay();
 			}
+			break;
+
+		case 'e':
+		case 'E':
+			// TODO: GUI for filename at least
+			if(!save_curves(stdout, &curves[0], (int)curves.size())) {
+				fprintf(stderr, "failed to export curves\n");
+			}
+			printf("exported %d curves\n", (int)curves.size());
 			break;
 		}
 	}
