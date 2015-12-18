@@ -11,11 +11,11 @@ LDFLAGS = $(libgl) -lvmath -ldrawtext -lm
 sys := $(shell uname -s | sed 's/MINGW.*/win32/')
 
 ifeq ($(sys), Darwin)
-	libgl = -framework OpenGL -framework GLUT
+	libgl = -framework OpenGL -framework GLUT -lGLEW
 else ifeq ($(sys), win32)
-	libgl = -lopengl32 -lglut32
+	libgl = -lopengl32 -lglut32 -lglew32
 else
-	libgl = -lGL -lglut
+	libgl = -lGL -lglut -lGLEW
 endif
 
 $(bin): $(obj)
