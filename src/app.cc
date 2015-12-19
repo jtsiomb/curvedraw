@@ -257,10 +257,28 @@ void app_keyboard(int key, bool pressed)
 		case 'e':
 		case 'E':
 			// TODO: GUI for filename at least
-			if(!save_curves(stdout, &curves[0], (int)curves.size())) {
+			if(!save_curves("test.curves", &curves[0], (int)curves.size())) {
 				fprintf(stderr, "failed to export curves\n");
 			}
 			printf("exported %d curves\n", (int)curves.size());
+			break;
+
+		case 'i':
+		case 'I':
+			{
+				std::list<Curve*> clist = load_curves("test.curves");
+				if(clist.empty()) {
+					fprintf(stderr, "failed to import curves\n");
+				}
+
+				int num = 0;
+				std::list<Curve*>::iterator it = clist.begin();
+				while(it != clist.end()) {
+					curves.push_back(*it++);
+					++num;
+				}
+				printf("imported %d curves\n", num);
+			}
 			break;
 		}
 	}

@@ -53,12 +53,13 @@ static bool save_curve(FILE *fp, const Curve *curve)
 	return true;
 }
 
-Curve **load_curves(const char *fname, int *countret)
+std::list<Curve*> load_curves(const char *fname)
 {
+	std::list<Curve*> res;
 	FILE *fp = fopen(fname, "r");
-	if(!fp) return false;
+	if(!fp) return res;
 
-	Curve **res = load_curves(fp, countret);
+	res = load_curves(fp);
 	fclose(fp);
 	return res;
 }
@@ -167,33 +168,28 @@ err:
 	return 0;
 }
 
-Curve **load_curves(FILE *fp, int *countret)
+std::list<Curve*> load_curves(FILE *fp)
 {
+	std::list<Curve*> curves;
 	if(!expect_str(fp, "GCURVES")) {
 		fprintf(stderr, "load_curves: failed to load, invalid file format\n");
-		return 0;
+		return curves;
 	}
 
-	std::vector<Curve*> curves;
 	Curve *curve;
-
 	while((curve = curve_block(fp))) {
 		curves.push_back(curve);
 	}
 
 	int ncurves = (int)curves.size();
 	if(!feof(fp)) {
-		for(int i=0; i<ncurves; i++) {
-			delete curves[i];
+		std::list<Curve*>::iterator it = curves.begin();
+		while(it != curves.end()) {
+			delete *it++;
 		}
-		return 0;
+		return curves;
 	}
 
-	Curve **carr = new Curve*[ncurves];
-	for(int i=0; i<ncurves; i++) {
-		carr[i] = curves[i];
-	}
-	*countret = ncurves;
-	return carr;
+	return curves;
 }
 
