@@ -17,7 +17,7 @@ bool save_curves(const char *fname, const Curve * const *curves, int count)
 
 bool save_curves(FILE *fp, const Curve * const *curves, int count)
 {
-	fprintf(stderr, "GCURVES\n");
+	fprintf(fp, "GCURVES\n");
 
 	for(int i=0; i<count; i++) {
 		if(!save_curve(fp, curves[i])) {
@@ -68,11 +68,23 @@ static std::string next_token(FILE *fp)
 {
 	std::string s;
 	int c;
-	while((c = fgetc(fp)) != -1 && isspace(c));	// skip whitespace
+	while((c = fgetc(fp)) != -1) {
+		if(!isspace(c)) {
+			ungetc(c, fp);
+			break;
+		}
+	}
+
 	if(feof(fp)) return s;
-	while((c = fgetc(fp)) != -1 && !isspace(c)) {
+	while((c = fgetc(fp)) != -1) {
+		if(isspace(c)) {
+			ungetc(c, fp);
+			break;
+		}
 		s.push_back(c);
 	}
+
+	printf("TOKEN: \"%s\"\n", s.c_str());
 	return s;
 }
 
@@ -80,7 +92,7 @@ static bool expect_str(FILE *fp, const char *s)
 {
 	std::string tok = next_token(fp);
 	if(tok != std::string(s)) {
-		if(!(tok.empty() && feof(fp))) {
+		if(tok.empty() && feof(fp)) {
 			fprintf(stderr, "expected: %s\n", s);
 		}
 		return false;
@@ -144,7 +156,7 @@ static Curve *curve_block(FILE *fp)
 				goto err;
 			}
 		} else {
-			if(!expect_str(fp, "cp")) {
+			if(tok != "cp") {
 				goto err;
 			}
 			Vector3 cp;
