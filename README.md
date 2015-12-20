@@ -9,6 +9,7 @@ modelling (extrusion or surfaces of revolution), for animation paths, etc.
 
 ## License
 Copyright (C) 2015 John Tsiombikas <nuclear@member.fsf.org>
+
 This program is free software. Feel free to use it, modify it and/or
 redistribute it under the terms of the GNU General Public License version 3 or
 (at your option) any later version published by the Free Software Foundation.
