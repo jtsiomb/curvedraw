@@ -46,8 +46,8 @@ static bool save_curve(FILE *fp, const Curve *curve)
 	fprintf(fp, "    type %s\n", curve_type_str(curve->get_type()));
 	fprintf(fp, "    cpcount %d\n", curve->size());
 	for(int i=0; i<curve->size(); i++) {
-		Vector3 cp = curve->get_homo_point(i);
-		fprintf(fp, "    cp %g %g %g\n", cp.x, cp.y, cp.z);
+		Vector4 cp = curve->get_point(i);
+		fprintf(fp, "    cp %g %g %g %g\n", cp.x, cp.y, cp.z, cp.w);
 	}
 	fprintf(fp, "}\n");
 	return true;
@@ -83,8 +83,6 @@ static std::string next_token(FILE *fp)
 		}
 		s.push_back(c);
 	}
-
-	printf("TOKEN: \"%s\"\n", s.c_str());
 	return s;
 }
 
@@ -159,13 +157,13 @@ static Curve *curve_block(FILE *fp)
 			if(tok != "cp") {
 				goto err;
 			}
-			Vector3 cp;
-			for(int i=0; i<3; i++) {
+			Vector4 cp;
+			for(int i=0; i<4; i++) {
 				if(!expect_float(fp, &cp[i])) {
 					goto err;
 				}
 			}
-			curve->add_point(Vector2(cp.x, cp.y), cp.z);
+			curve->add_point(Vector3(cp.x, cp.y, cp.z), cp.w);
 		}
 	}
 

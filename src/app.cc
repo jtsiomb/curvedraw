@@ -30,6 +30,8 @@ static Matrix4x4 view_matrix;
 static float grid_size = 1.0;
 static SnapMode snap_mode;
 
+static bool show_bounds;
+
 static std::vector<Curve*> curves;
 static Curve *sel_curve;	// selected curve being edited
 static Curve *new_curve;	// new curve being entered
@@ -38,9 +40,7 @@ static int sel_pidx = -1;	// selected point of the selected or hovered-over curv
 
 static Label *weight_label;	// floating label for the cp weight
 
-#ifdef DRAW_MOUSE_POINTER
 static Vector2 mouse_pointer;
-#endif
 
 
 bool app_init(int argc, char **argv)
@@ -151,6 +151,20 @@ static void draw_curve(const Curve *curve)
 	int numpt = curve->size();
 	int segm = numpt * 16;
 
+	if(show_bounds) {
+		Vector3 bmin, bmax;
+		curve->get_bbox(&bmin, &bmax);
+
+		glLineWidth(1.0);
+		glColor3f(0, 1, 0);
+		glBegin(GL_LINE_LOOP);
+		glVertex2f(bmin.x, bmin.y);
+		glVertex2f(bmax.x, bmin.y);
+		glVertex2f(bmax.x, bmax.y);
+		glVertex2f(bmin.x, bmax.y);
+		glEnd();
+	}
+
 	glLineWidth(curve == hover_curve ? 4.0 : 2.0);
 	if(curve == sel_curve) {
 		glColor3f(0.3, 0.4, 1.0);
@@ -162,7 +176,7 @@ static void draw_curve(const Curve *curve)
 	glBegin(GL_LINE_STRIP);
 	for(int i=0; i<segm; i++) {
 		float t = (float)i / (float)(segm - 1);
-		Vector2 v = curve->interpolate(t);
+		Vector3 v = curve->interpolate(t);
 		glVertex2f(v.x, v.y);
 	}
 	glEnd();
@@ -183,10 +197,23 @@ static void draw_curve(const Curve *curve)
 				glColor3f(0.2, 1.0, 0.2);
 			}
 		}
-		Vector2 pt = curve->get_point(i);
+		Vector2 pt = curve->get_point2(i);
 		glVertex2f(pt.x, pt.y);
 	}
 	glEnd();
+
+	// draw the projected mouse point on the selected curve
+	/*
+	if(curve == sel_curve) {
+		Vector3 pp = curve->proj_point(Vector3(mouse_pointer.x, mouse_pointer.y, 0.0));
+
+		glPointSize(5.0);
+		glBegin(GL_POINTS);
+		glColor3f(1, 0.8, 0.2);
+		glVertex2f(pp.x, pp.y);
+		glEnd();
+	}
+	*/
 	glPointSize(1.0);
 }
 
@@ -218,38 +245,29 @@ void app_keyboard(int key, bool pressed)
 			}
 			break;
 
-		case 'l':
-		case 'L':
+		case '1':
+		case '2':
+		case '3':
 			if(sel_curve) {
-				sel_curve->set_type(CURVE_LINEAR);
+				sel_curve->set_type((CurveType)((int)CURVE_LINEAR + key - '1'));
 				post_redisplay();
 			}
 			if(new_curve) {
-				new_curve->set_type(CURVE_LINEAR);
+				new_curve->set_type((CurveType)((int)CURVE_LINEAR + key - '1'));
 				post_redisplay();
 			}
 			break;
 
 		case 'b':
 		case 'B':
-			if(sel_curve) {
-				sel_curve->set_type(CURVE_BSPLINE);
-				post_redisplay();
-			}
-			if(new_curve) {
-				new_curve->set_type(CURVE_BSPLINE);
-				post_redisplay();
-			}
+			show_bounds = !show_bounds;
+			post_redisplay();
 			break;
 
-		case 'h':
-		case 'H':
+		case 'n':
+		case 'N':
 			if(sel_curve) {
-				sel_curve->set_type(CURVE_HERMITE);
-				post_redisplay();
-			}
-			if(new_curve) {
-				new_curve->set_type(CURVE_HERMITE);
+				sel_curve->normalize();
 				post_redisplay();
 			}
 			break;
@@ -263,13 +281,18 @@ void app_keyboard(int key, bool pressed)
 			printf("exported %d curves\n", (int)curves.size());
 			break;
 
-		case 'i':
-		case 'I':
+		case 'l':
+		case 'L':
 			{
 				std::list<Curve*> clist = load_curves("test.curves");
 				if(clist.empty()) {
 					fprintf(stderr, "failed to import curves\n");
 				}
+
+				for(size_t i=0; i<curves.size(); i++) {
+					delete curves[i];
+				}
+				curves.clear();
 
 				int num = 0;
 				std::list<Curve*>::iterator it = clist.begin();
@@ -279,6 +302,7 @@ void app_keyboard(int key, bool pressed)
 				}
 				printf("imported %d curves\n", num);
 			}
+			post_redisplay();
 			break;
 		}
 	}
@@ -402,10 +426,8 @@ void app_mouse_motion(int x, int y)
 	if(!dx && !dy) return;
 
 	Vector2 uv = pixel_to_uv(x, y);
-#ifdef DRAW_MOUSE_POINTER
 	mouse_pointer = uv;
 	post_redisplay();
-#endif
 
 	/* when entering a new curve, have the last (extra) point following
 	 * the mouse until it's entered by a click (see on_click).
