@@ -262,68 +262,68 @@ void Curve::normalize()
 	inval_bounds();
 }
 
-/* Projection to the curve is not correct, but should be good enough for
- * most purposes.
- *
- * First we find the nearest segment (pair of control points), and then
- * we subdivide between them to find the nearest interpolated point in that
- * segment.
- * The incorrect assumption here is that the nearest segment as defined by
- * the distance of its control points to p, will contain the nearest point
- * on the curve. This only holds for polylines, and *possibly* bsplines, but
- * certainly not hermite splines.
- */
-Vector3 Curve::proj_point(const Vector3 &p) const
+Vector3 Curve::proj_point(const Vector3 &p, float refine_thres) const
 {
-	// TODO fix: select nearest segment based on point-line distance, not distance from the CPs
+	// first step through the curve a few times and find the nearest of them
 	int num_cp = size();
-	if(num_cp <= 0) return p;
-	if(num_cp == 1) return cp[0];
+	int num_steps = num_cp * 5;	// arbitrary number; sounds ok
+	float dt = 1.0f / (float)(num_steps - 1);
 
-	int idx0 = nearest_point(p);
-	int next_idx = idx0 + 1;
-	int prev_idx = idx0 - 1;
+	float best_distsq = FLT_MAX;
+	float best_t = 0.0f;
+	Vector3 best_pp;
 
-	float next_distsq = next_idx >= num_cp ? FLT_MAX : (get_point3(next_idx) - p).length_sq();
-	float prev_distsq = prev_idx < 0 ? FLT_MAX : (get_point3(prev_idx) - p).length_sq();
-	int idx1 = next_distsq < prev_distsq ? next_idx : prev_idx;
-	assert(idx1 >= 0 && idx1 < num_cp - 1);
-	if(idx0 > idx1) std::swap(idx0, idx1);
+	float t = 0.0f;
+	for(int i=0; i<num_steps; i++) {
+		Vector3 pp = interpolate(t);
+		float distsq = (pp - p).length_sq();
+		if(distsq < best_distsq) {
+			best_distsq = distsq;
+			best_pp = pp;
+			best_t = t;
+		}
+		t += dt;
+	}
 
-	float t0 = 0.0f, t1 = 1.0f;
-	Vector3 pp0 = interpolate_segment(idx0, idx1, 0.0f);
-	Vector3 pp1 = interpolate_segment(idx0, idx1, 1.0f);
-	float dist0 = (pp0 - p).length_sq();
-	float dist1 = (pp1 - p).length_sq();
-	Vector3 pp;
+	// refine by gradient descent
+	float dist = best_distsq;
+	t = best_t;
+	dt *= 0.05;
+	for(;;) {
+		float tn = t + dt;
+		float tp = t - dt;
 
-	for(int i=0; i<32; i++) {	// max iterations
-		float t = (t0 + t1) / 2.0;
-		pp = interpolate_segment(idx0, idx1, t);
-		float dist = (pp - p).length_sq();
+		float dn = (interpolate(tn) - p).length_sq();
+		float dp = (interpolate(tp) - p).length_sq();
 
-		// mid point more distant than both control points, nearest cp is closest
-		if(dist > dist0 && dist > dist1) {
-			pp = dist0 < dist1 ? pp0 : pp1;
+		if(fabs(dn - dp) < refine_thres * refine_thres) {
 			break;
 		}
 
-		if(dist0 < dist1) {
-			t1 = t;
-			dist1 = dist;
-			pp1 = pp;
+		if(dn < dist) {
+			t = tn;
+			dist = dn;
+		} else if(dp < dist) {
+			t = tp;
+			dist = dp;
 		} else {
-			t0 = t;
-			dist0 = dist;
-			pp0 = pp;
-		}
-
-		if(fabs(dist0 - dist1) < 1e-4) {
-			break;
+			break;	// found the minimum
 		}
 	}
-	return pp;
+
+	return interpolate(t);
 }
+
+float Curve::distance(const Vector3 &p) const
+{
+	return (proj_point(p) - p).length();
+}
+
+float Curve::distance_sq(const Vector3 &p) const
+{
+	return fabs((proj_point(p) - p).length_sq());
+}
+
 
 Vector3 Curve::interpolate_segment(int a, int b, float t) const
 {
@@ -346,6 +346,7 @@ Vector3 Curve::interpolate_segment(int a, int b, float t) const
 			if(res.w != 0.0f) {
 				res.x /= res.w;
 				res.y /= res.w;
+				res.z /= res.w;
 			}
 		}
 	}
@@ -363,6 +364,9 @@ Vector3 Curve::interpolate(float t) const
 	if(num_cp == 1) {
 		return Vector3(cp[0].x, cp[0].y, cp[0].z);
 	}
+
+	if(t < 0.0) t = 0.0;
+	if(t > 1.0) t = 1.0;
 
 	int idx0 = std::min((int)floor(t * (num_cp - 1)), num_cp - 2);
 	int idx1 = idx0 + 1;

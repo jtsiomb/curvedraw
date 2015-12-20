@@ -70,9 +70,11 @@ public:
 	void normalize();
 
 	// project a point to the curve (nearest point on the curve)
-	Vector3 proj_point(const Vector3 &p) const;
-	// equivalent to (proj_point(p) - p).length();
+	Vector3 proj_point(const Vector3 &p, float refine_thres = 0.01) const;
+	// equivalent to (proj_point(p) - p).length()
 	float distance(const Vector3 &p) const;
+	// equivalent to fabs((proj_point(p) - p).length_sq())
+	float distance_sq(const Vector3 &p) const;
 
 	Vector3 interpolate_segment(int a, int b, float t) const;
 	Vector3 interpolate(float t) const;

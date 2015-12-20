@@ -36,7 +36,8 @@ static std::vector<Curve*> curves;
 static Curve *sel_curve;	// selected curve being edited
 static Curve *new_curve;	// new curve being entered
 static Curve *hover_curve;	// curve the mouse is hovering over (click to select)
-static int sel_pidx = -1;	// selected point of the selected or hovered-over curve
+static int sel_pidx = -1;	// selected point of the selected curve
+static int hover_pidx = -1;	// hovered over point
 
 static Label *weight_label;	// floating label for the cp weight
 
@@ -389,10 +390,32 @@ static bool point_hit_test(const Vector2 &pos, Curve **curveret, int *pidxret)
 		int pidx = curves[i]->nearest_point(pos);
 		if(pidx == -1) continue;
 
-		Vector2 cp = curves[i]->get_point(pidx);
+		Vector2 cp = curves[i]->get_point2(pidx);
 		if((cp - pos).length_sq() < thres * thres) {
 			*curveret = curves[i];
 			*pidxret = pidx;
+			return true;
+		}
+	}
+	*curveret = 0;
+	*pidxret = -1;
+	return false;
+}
+
+static bool hit_test(const Vector2 &pos, Curve **curveret, int *pidxret)
+{
+	float thres = 0.02 / view_scale;
+
+	if(point_hit_test(pos, curveret, pidxret)) {
+		return true;
+	}
+
+	Vector3 pos3 = Vector3(pos.x, pos.y, 0.0f);
+	for(size_t i=0; i<curves.size(); i++) {
+		float x;
+		if((x = curves[i]->distance_sq(pos3)) < thres * thres) {
+			*curveret = curves[i];
+			*pidxret = -1;
 			return true;
 		}
 	}
@@ -427,7 +450,7 @@ void app_mouse_motion(int x, int y)
 
 	Vector2 uv = pixel_to_uv(x, y);
 	mouse_pointer = uv;
-	post_redisplay();
+	//post_redisplay();
 
 	/* when entering a new curve, have the last (extra) point following
 	 * the mouse until it's entered by a click (see on_click).
@@ -439,7 +462,10 @@ void app_mouse_motion(int x, int y)
 
 	if(!new_curve && !bnstate) {
 		// not dragging, highlight curve under mouse
-		point_hit_test(uv, &hover_curve, &sel_pidx);
+		hit_test(uv, &hover_curve, &hover_pidx);
+		if(hover_curve == sel_curve) {
+			sel_pidx = hover_pidx;
+		}
 		post_redisplay();
 
 	} else {
@@ -499,6 +525,7 @@ static void on_click(int bn, float u, float v)
 		if(hover_curve) {
 			// if we're hovering: click selects
 			sel_curve = hover_curve;
+			sel_pidx = hover_pidx;
 			hover_curve = 0;
 		} else if(sel_curve) {
 			// if we have a selected curve: click adds point (enter new_curve mode)
@@ -537,9 +564,11 @@ static void on_click(int bn, float u, float v)
 			// in selected curve mode: delete control point or unselect
 			Curve *hit_curve;
 			int hit_pidx;
-			if(point_hit_test(uv, &hit_curve, &hit_pidx) && hit_curve == sel_curve) {
-				hit_curve->remove_point(hit_pidx);
-				sel_pidx = -1;
+			if(hit_test(uv, &hit_curve, &hit_pidx) && hit_curve == sel_curve) {
+				if(hit_pidx != -1) {
+					hit_curve->remove_point(hit_pidx);
+					sel_pidx = -1;
+				}
 			} else {
 				sel_curve = 0;
 				sel_pidx = -1;
