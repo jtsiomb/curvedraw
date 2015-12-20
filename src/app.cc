@@ -67,6 +67,7 @@ bool app_init(int argc, char **argv)
 
 	glEnable(GL_MULTISAMPLE);
 	glEnable(GL_CULL_FACE);
+	glEnable(GL_POINT_SMOOTH);
 
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
