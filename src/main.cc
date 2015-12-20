@@ -47,11 +47,6 @@ static void display()
 	glutSwapBuffers();
 }
 
-static void reshape(int x, int y)
-{
-	app_reshape(x, y);
-}
-
 static void keydown(unsigned char key, int x, int y)
 {
 	app_keyboard(key, true);
