@@ -1,22 +1,27 @@
-Curve Draw
-==========
+# Curve Draw
 
-Overview
---------
+![curvedraw](http://nuclear.mutantstargoat.com/sw/misc/curves-512.png)
+
+## Overview
 Curvedraw is a simple 2D curve drawing program. I've often found it useful to
 draw curves for use in my graphics programs. They can be useful for procedural
 modelling (extrusion or surfaces of revolution), for animation paths, etc.
 
-License
--------
+## License
 Copyright (C) 2015 John Tsiombikas <nuclear@member.fsf.org>
 This program is free software. Feel free to use it, modify it and/or
 redistribute it under the terms of the GNU General Public License version 3 or
 (at your option) any later version published by the Free Software Foundation.
 See COPYING for details.
 
-Usage
------
+## Dependencies
+You need to install the following libraries before compiling curvedraw:
+ - libvmath: https://github.com/jtsiomb/libvmath
+ - libdrawtext: https://github.com/jtsiomb/libdrawtext
+ - GLEW: http://glew.sourceforge.net
+ - GLUT: http://freeglut.sourceforge.net
+
+## Usage
 Mouse:
  - Click to start adding points to a new curve, then finish it by right clicking.
  - Click on a curve to select it.
@@ -39,8 +44,7 @@ Viewport:
  - Drag with the left or middle mouse button to pan.
  - Drag up or down with the right mouse button to zoom.
 
-Curves file format
-------------------
+## Curves file format
 The files read and written by this program are simple text files. They start
 with the word "GCURVES" in caps in the first line, followed by a series of curve
 blocks of the form::
