@@ -79,6 +79,29 @@ void Curve::add_point(const Vector2 &p, float weight)
 	add_point(Vector4(p.x, p.y, 0.0f, weight));
 }
 
+void Curve::insert_point(const Vector4 &p)
+{
+	float t = proj_param(Vector3(p.x, p.y, p.z));
+	if(t < 0 || t >= 1.0) {
+		add_point(p);
+	} else {
+		int after = (int)(t * size());
+		printf("inserting (%g) after %d\n", t, after);
+		cp.insert(cp.begin() + after + 1, p);
+	}
+	inval_bounds();
+}
+
+void Curve::insert_point(const Vector3 &p, float weight)
+{
+	insert_point(Vector4(p.x, p.y, p.z, weight));
+}
+
+void Curve::insert_point(const Vector2 &p, float weight)
+{
+	insert_point(Vector4(p.x, p.y, 0.0, weight));
+}
+
 bool Curve::remove_point(int idx)
 {
 	if(idx < 0 || idx >= (int)cp.size()) {
@@ -279,7 +302,7 @@ void Curve::normalize()
 	inval_bounds();
 }
 
-Vector3 Curve::proj_point(const Vector3 &p, float refine_thres) const
+float Curve::proj_param(const Vector3 &p, float refine_thres) const
 {
 	// first step through the curve a few times and find the nearest of them
 	int num_cp = size();
@@ -327,7 +350,12 @@ Vector3 Curve::proj_point(const Vector3 &p, float refine_thres) const
 			break;	// found the minimum
 		}
 	}
+	return t;
+}
 
+Vector3 Curve::proj_point(const Vector3 &p, float refine_thres) const
+{
+	float t = proj_param(p, refine_thres);
 	return interpolate(t);
 }
 

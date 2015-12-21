@@ -51,6 +51,9 @@ public:
 	void add_point(const Vector4 &p);
 	void add_point(const Vector3 &p, float weight = 1.0f);
 	void add_point(const Vector2 &p, float weight = 1.0f);
+	void insert_point(const Vector4 &p);
+	void insert_point(const Vector3 &p, float weight = 1.0f);
+	void insert_point(const Vector2 &p, float weight = 1.0f);
 	bool remove_point(int idx);
 
 	void clear();		// remove all control points
@@ -71,7 +74,7 @@ public:
 	// move point without changing its weight
 	bool move_point(int idx, const Vector3 &p);
 	bool move_point(int idx, const Vector2 &p);
- 
+
 	int nearest_point(const Vector3 &p) const;
 	// nearest control point on the 2D plane z=0
 	int nearest_point(const Vector2 &p) const;
@@ -87,6 +90,7 @@ public:
 	void normalize();
 
 	// project a point to the curve (nearest point on the curve)
+	float proj_param(const Vector3 &p, float refine_thres = 0.01) const;
 	Vector3 proj_point(const Vector3 &p, float refine_thres = 0.01) const;
 	// equivalent to (proj_point(p) - p).length()
 	float distance(const Vector3 &p) const;
