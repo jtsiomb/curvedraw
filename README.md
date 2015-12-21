@@ -48,16 +48,14 @@ Viewport:
 ## Curves file format
 The files read and written by this program are simple text files. They start
 with the word "GCURVES" in caps in the first line, followed by a series of curve
-blocks of the form:
+blocks of the form::
 
-```
   curve {
       type <curve type, can be "hermite", "polyline", or "bspline">
       cpcount <number of control points>
       cp <x> <y> <z> <w>
       ...
   }
-```
 
 The control points are 4-vectors to allow for representing 3D rational
 b-splines. Lower-dimensional curves should set 'w' to 1, and all other unused
