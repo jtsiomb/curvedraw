@@ -222,8 +222,7 @@ static void draw_curve(const Curve *curve)
 	glEnd();
 
 	// draw the projected mouse point on the selected curve
-	/*
-	if(curve == sel_curve) {
+	if(curve == sel_curve && sel_pidx == -1) {
 		Vector3 pp = curve->proj_point(Vector3(mouse_pointer.x, mouse_pointer.y, 0.0));
 
 		glPointSize(5.0);
@@ -232,7 +231,6 @@ static void draw_curve(const Curve *curve)
 		glVertex2f(pp.x, pp.y);
 		glEnd();
 	}
-	*/
 	glPointSize(1.0);
 }
 
@@ -312,6 +310,7 @@ void app_keyboard(int key, bool pressed)
 					delete curves[i];
 				}
 				curves.clear();
+				sel_curve = hover_curve = new_curve = 0;
 
 				int num = 0;
 				std::list<Curve*>::iterator it = clist.begin();
@@ -400,9 +399,11 @@ void app_mouse_button(int bn, bool pressed, int x, int y)
 	}
 }
 
+#define HIT_TEST_THRES	(0.02 / view_scale)
+
 static bool point_hit_test(const Vector2 &pos, Curve **curveret, int *pidxret)
 {
-	float thres = 0.02 / view_scale;
+	float thres = HIT_TEST_THRES;
 
 	for(size_t i=0; i<curves.size(); i++) {
 		int pidx = curves[i]->nearest_point(pos);
@@ -422,7 +423,7 @@ static bool point_hit_test(const Vector2 &pos, Curve **curveret, int *pidxret)
 
 static bool hit_test(const Vector2 &pos, Curve **curveret, int *pidxret)
 {
-	float thres = 0.02 / view_scale;
+	float thres = HIT_TEST_THRES;
 
 	if(point_hit_test(pos, curveret, pidxret)) {
 		return true;
@@ -575,22 +576,32 @@ static void on_click(int bn, float u, float v)
 
 	switch(bn) {
 	case 0:	// ------- LEFT CLICK ------
-		if(hover_curve) {
+		if(hover_curve && hover_curve != sel_curve) {
 			// if we're hovering: click selects
 			sel_curve = hover_curve;
 			sel_pidx = hover_pidx;
 			hover_curve = 0;
 		} else if(sel_curve) {
-			// if we have a selected curve: click adds point (enter new_curve mode)
-			std::vector<Curve*>::iterator it = std::find(curves.begin(), curves.end(), sel_curve);
-			assert(it != curves.end());
-			curves.erase(it, it + 1);
+			// if we have a selected curve: click adds point
+			Vector3 uv3 = Vector3(uv.x, uv.y, 0.0);
+			float proj_t = sel_curve->proj_param(uv3);
 
-			new_curve = sel_curve;
-			sel_curve = 0;
-			sel_pidx = -1;
+			if(proj_t >= 0.0 && proj_t < 1.0) {
+				printf("proj_t = %g\n", proj_t);
+				// insert somewhere in the middle
+				sel_curve->insert_point(sel_curve->interpolate(proj_t));
+			} else {
+				// enter new curve mode and start appending more points
+				std::vector<Curve*>::iterator it = std::find(curves.begin(), curves.end(), sel_curve);
+				assert(it != curves.end());
+				curves.erase(it, it + 1);
 
-			new_curve->add_point(uv);
+				new_curve = sel_curve;
+				sel_curve = 0;
+				sel_pidx = -1;
+
+				new_curve->add_point(uv);
+			}
 		} else {
 			// otherwise, click starts a new curve
 			if(!new_curve) {
