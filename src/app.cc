@@ -38,6 +38,7 @@ float win_aspect;
 static void draw_grid(float sz, float sep, float alpha = 1.0f);
 static void draw_curve(const Curve *curve);
 static void on_click(int bn, float u, float v);
+static int curve_index(const Curve *curve);
 
 // viewport control
 static Vector2 view_pan;
@@ -258,6 +259,24 @@ void app_keyboard(int key, bool pressed)
 			if(new_curve) {
 				delete new_curve;
 				new_curve = 0;
+				post_redisplay();
+			}
+			break;
+
+		case '\b':
+		case 127:	/* delete */
+			if(new_curve) {
+				delete new_curve;
+				new_curve = 0;
+				post_redisplay();
+			} else if(sel_curve) {
+				int cidx = curve_index(sel_curve);
+				assert(cidx != -1);
+				curves.erase(curves.begin() + cidx);
+
+				delete sel_curve;
+				sel_curve = 0;
+				sel_pidx = -1;
 				post_redisplay();
 			}
 			break;
@@ -592,9 +611,9 @@ static void on_click(int bn, float u, float v)
 				sel_curve->insert_point(sel_curve->interpolate(proj_t));
 			} else {
 				// enter new curve mode and start appending more points
-				std::vector<Curve*>::iterator it = std::find(curves.begin(), curves.end(), sel_curve);
-				assert(it != curves.end());
-				curves.erase(it, it + 1);
+				int cidx = curve_index(sel_curve);
+				assert(cidx != -1);
+				curves.erase(curves.begin() + cidx);
 
 				new_curve = sel_curve;
 				sel_curve = 0;
@@ -632,6 +651,14 @@ static void on_click(int bn, float u, float v)
 				if(hit_pidx != -1) {
 					hit_curve->remove_point(hit_pidx);
 					sel_pidx = -1;
+					if(hit_curve->empty()) {	// removed the last point
+						int cidx = curve_index(sel_curve);
+						assert(cidx != -1);
+						curves.erase(curves.begin() + cidx);
+						delete sel_curve;
+						sel_curve = 0;
+						sel_pidx = -1;
+					}
 				}
 			} else {
 				sel_curve = 0;
@@ -644,4 +671,14 @@ static void on_click(int bn, float u, float v)
 	default:
 		break;
 	}
+}
+
+static int curve_index(const Curve *curve)
+{
+	for(size_t i=0; i<curves.size(); i++) {
+		if(curves[i] == curve) {
+			return i;
+		}
+	}
+	return -1;
 }

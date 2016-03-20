@@ -34,6 +34,7 @@ Keys:
  - Holding 's' while adding points snaps to grid.
  - Holding SHIFT-'s' while adding points snaps to nearest existing point.
  - Press ESC to cancel the currently created curve.
+ - Press 'delete' or 'backspace' to delete the currently selected curve.
  - Press 'q' to exit.
  - Press '1' - '3' to change selected curve type (polyline, hermite, bspline).
  - Press 'b' to show the selected curve's bounding box.
