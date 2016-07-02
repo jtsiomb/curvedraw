@@ -34,7 +34,7 @@ MainWindow::MainWindow()
 	QAction *act_open = new QAction(qApp->style()->standardIcon(QStyle::SP_DialogOpenButton), "&Open...", this);
 	act_open->setStatusTip("Open a curve file");
 	act_open->setShortcut(QKeySequence::Open);
-	QObject::connect(act_open, SIGNAL(tiggered()), this, SLOT(open_curvefile()));
+	QObject::connect(act_open, SIGNAL(triggered()), this, SLOT(open_curvefile()));
 
 	QAction *act_quit = new QAction(qApp->style()->standardIcon(QStyle::SP_DialogCloseButton), "&Quit", this);
 	act_quit->setShortcut(QKeySequence(tr("Ctrl+Q", "File|Quit")));
@@ -67,6 +67,16 @@ void MainWindow::open_curvefile()
 
 GLView::GLView()
 {
+}
+
+QSize GLView::minimumSizeHint() const
+{
+	return QSize(80, 60);
+}
+
+QSize GLView::sizeHint() const
+{
+	return QSize(1280, 800);
 }
 
 void GLView::initializeGL()

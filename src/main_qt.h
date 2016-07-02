@@ -32,6 +32,9 @@ protected:
 
 public:
 	GLView();
+
+	QSize minimumSizeHint() const;
+	QSize sizeHint() const;
 };
 
 #endif	// MAIN_QT_H_
