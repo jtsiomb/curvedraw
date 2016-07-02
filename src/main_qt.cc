@@ -1,12 +1,14 @@
 #include <stdlib.h>
 #include <QApplication>
-#include <QMouseEvent>
+#include <QtWidgets>
+/*#include <QMouseEvent>
 #include <QAction>
 #include <QMenu>
 #include <QMenuBar>
 #include <QToolBar>
 #include <QStyle>
 #include <QFileDialog>
+*/
 #include "main_qt.h"
 #include "app.h"
 
@@ -57,9 +59,11 @@ void MainWindow::open_curvefile()
 {
 	QString fname = QFileDialog::getOpenFileName(this, "Open curve file", QString(), "Curves (*.curves)");
 	if(!fname.isNull()) {
-		// TODO
-		printf("Open curve file: %s\n", qPrintable(fname));
-		glview->update();
+		if(app_tool_load(qPrintable(fname))) {
+			glview->update();
+		} else {
+			QMessageBox::critical(this, "Failed to open file!", "Failed to load curves from: " + fname);
+		}
 	}
 }
 
@@ -67,6 +71,8 @@ void MainWindow::open_curvefile()
 
 GLView::GLView()
 {
+	setMouseTracking(true);
+	setFocusPolicy(Qt::StrongFocus);
 }
 
 QSize GLView::minimumSizeHint() const
@@ -94,6 +100,48 @@ void GLView::resizeGL(int x, int y)
 void GLView::paintGL()
 {
 	app_draw();
+}
+
+static int key_code(int qkey)
+{
+	switch(qkey) {
+	case Qt::Key_Escape:
+		return 27;
+	case Qt::Key_Tab:
+		return '\t';
+	case Qt::Key_Return:
+	case Qt::Key_Enter:
+		return '\n';
+	case Qt::Key_Delete:
+		return 127;
+	case Qt::Key_Backspace:
+		return '\b';
+	}
+
+	if(qkey > 0 && qkey < 256) {
+		return qkey;
+	}
+	return -1;
+}
+
+void GLView::keyPressEvent(QKeyEvent *ev)
+{
+	int key = key_code(ev->key());
+	if(key >= 0) {
+		app_keyboard(key, true);
+	} else {
+		QWidget::keyPressEvent(ev);
+	}
+}
+
+void GLView::keyReleaseEvent(QKeyEvent *ev)
+{
+	int key = key_code(ev->key());
+	if(key >= 0) {
+		app_keyboard(key, false);
+	} else {
+		QWidget::keyPressEvent(ev);
+	}
 }
 
 static int button_number(Qt::MouseButton bn)

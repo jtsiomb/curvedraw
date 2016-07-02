@@ -247,6 +247,40 @@ void app_reshape(int x, int y)
 	glOrtho(-win_aspect, win_aspect, -1, 1, -1, 1);
 }
 
+bool app_tool_load(const char *fname)
+{
+	std::list<Curve*> clist = load_curves(fname);
+	if(clist.empty()) {
+		fprintf(stderr, "failed to load curves from: %s\n", fname);
+		return false;
+	}
+
+	for(size_t i=0; i<curves.size(); i++) {
+		delete curves[i];
+	}
+	curves.clear();
+	sel_curve = hover_curve = new_curve = 0;
+
+	int num = 0;
+	std::list<Curve*>::iterator it = clist.begin();
+	while(it != clist.end()) {
+		curves.push_back(*it++);
+		++num;
+	}
+	printf("imported %d curves from %s\n", num, fname);
+	return true;
+}
+
+bool app_tool_save(const char *fname)
+{
+	if(!save_curves(fname, &curves[0], (int)curves.size())) {
+		fprintf(stderr, "failed to export curves to %s\n", fname);
+		return false;
+	}
+	printf("exported %d curves to %s\n", (int)curves.size(), fname);
+	return true;
+}
+
 void app_keyboard(int key, bool pressed)
 {
 	if(pressed) {
@@ -310,36 +344,14 @@ void app_keyboard(int key, bool pressed)
 
 		case 'e':
 		case 'E':
-			// TODO: GUI for filename at least
-			if(!save_curves("test.curves", &curves[0], (int)curves.size())) {
-				fprintf(stderr, "failed to export curves\n");
-			}
-			printf("exported %d curves\n", (int)curves.size());
+			app_tool_save("test.curves");
 			break;
 
 		case 'l':
 		case 'L':
-			{
-				std::list<Curve*> clist = load_curves("test.curves");
-				if(clist.empty()) {
-					fprintf(stderr, "failed to import curves\n");
-				}
-
-				for(size_t i=0; i<curves.size(); i++) {
-					delete curves[i];
-				}
-				curves.clear();
-				sel_curve = hover_curve = new_curve = 0;
-
-				int num = 0;
-				std::list<Curve*>::iterator it = clist.begin();
-				while(it != clist.end()) {
-					curves.push_back(*it++);
-					++num;
-				}
-				printf("imported %d curves\n", num);
+			if(app_tool_load("test.curves")) {
+				post_redisplay();
 			}
-			post_redisplay();
 			break;
 		}
 	}
