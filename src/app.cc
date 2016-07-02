@@ -64,7 +64,7 @@ static Vector2 mouse_pointer;
 
 bool app_init(int argc, char **argv)
 {
-	glewInit();
+	//glewInit();
 
 	glEnable(GL_MULTISAMPLE);
 	glEnable(GL_CULL_FACE);

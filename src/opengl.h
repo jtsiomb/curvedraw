@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef OPENGL_H_
 #define OPENGL_H_
 
-#include <GL/glew.h>
+//#include <GL/glew.h>
+#include <GL/gl.h>
 
 #endif	// OPENGL_H_
