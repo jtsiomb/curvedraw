@@ -85,6 +85,9 @@ void MainWindow::save_curvefile()
 {
 	QString fname = QFileDialog::getSaveFileName(this, "Save curve file", QString(), "Curves (*.curves)");
 	if(!fname.isNull()) {
+		if(!fname.endsWith(".curves", Qt::CaseInsensitive)) {
+			fname += ".curves";
+		}
 		if(!app_tool_save(qPrintable(fname))) {
 			QMessageBox::critical(this, "Failed to save file!", "Failed to save file: " + fname);
 		}
@@ -126,8 +129,9 @@ void GLView::paintGL()
 	app_draw();
 }
 
-static int key_code(int qkey)
+static int key_code(QKeyEvent *ev)
 {
+	int qkey = ev->key();
 	switch(qkey) {
 	case Qt::Key_Escape:
 		return 27;
@@ -142,15 +146,16 @@ static int key_code(int qkey)
 		return '\b';
 	}
 
-	if(qkey > 0 && qkey < 256) {
-		return qkey;
+	QString text = ev->text();
+	if(!text.isEmpty() && text[0].isPrint()) {
+		return text[0].unicode();
 	}
 	return -1;
 }
 
 void GLView::keyPressEvent(QKeyEvent *ev)
 {
-	int key = key_code(ev->key());
+	int key = key_code(ev);
 	if(key >= 0) {
 		app_keyboard(key, true);
 	} else {
@@ -160,7 +165,7 @@ void GLView::keyPressEvent(QKeyEvent *ev)
 
 void GLView::keyReleaseEvent(QKeyEvent *ev)
 {
-	int key = key_code(ev->key());
+	int key = key_code(ev);
 	if(key >= 0) {
 		app_keyboard(key, false);
 	} else {
