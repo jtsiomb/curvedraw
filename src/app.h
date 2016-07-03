@@ -30,6 +30,7 @@ void app_keyboard(int key, bool pressed);
 void app_mouse_button(int bn, bool pressed, int x, int y);
 void app_mouse_motion(int x, int y);
 
+void app_tool_clear();
 bool app_tool_load(const char *fname);
 bool app_tool_save(const char *fname);
 

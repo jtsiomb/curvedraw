@@ -77,10 +77,7 @@ bool app_init(int argc, char **argv)
 
 void app_cleanup()
 {
-	for(size_t i=0; i<curves.size(); i++) {
-		delete curves[i];
-	}
-	curves.clear();
+	app_tool_clear();
 }
 
 void app_draw()
@@ -247,6 +244,18 @@ void app_reshape(int x, int y)
 	glOrtho(-win_aspect, win_aspect, -1, 1, -1, 1);
 }
 
+void app_tool_clear()
+{
+	for(size_t i=0; i<curves.size(); i++) {
+		delete curves[i];
+	}
+	curves.clear();
+	delete new_curve;
+	sel_curve = new_curve = hover_curve = 0;
+	sel_pidx = -1;
+	hover_pidx = -1;
+}
+
 bool app_tool_load(const char *fname)
 {
 	std::list<Curve*> clist = load_curves(fname);
@@ -255,11 +264,7 @@ bool app_tool_load(const char *fname)
 		return false;
 	}
 
-	for(size_t i=0; i<curves.size(); i++) {
-		delete curves[i];
-	}
-	curves.clear();
-	sel_curve = hover_curve = new_curve = 0;
+	app_tool_clear();
 
 	int num = 0;
 	std::list<Curve*>::iterator it = clist.begin();

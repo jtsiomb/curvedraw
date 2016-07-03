@@ -32,27 +32,50 @@ MainWindow::MainWindow()
 	glview = new GLView;
 	setCentralWidget(glview);
 
+	QStyle *style = qApp->style();
+
 	// actions
-	QAction *act_open = new QAction(qApp->style()->standardIcon(QStyle::SP_DialogOpenButton), "&Open...", this);
+	QAction *act_new = new QAction(style->standardIcon(QStyle::SP_DialogResetButton), "&New", this);
+	act_new->setStatusTip("Start new curve set");
+	act_new->setShortcut(QKeySequence::New);
+	QObject::connect(act_new, SIGNAL(triggered()), this, SLOT(clear_curves()));
+
+	QAction *act_open = new QAction(style->standardIcon(QStyle::SP_DialogOpenButton), "&Open...", this);
 	act_open->setStatusTip("Open a curve file");
 	act_open->setShortcut(QKeySequence::Open);
 	QObject::connect(act_open, SIGNAL(triggered()), this, SLOT(open_curvefile()));
 
-	QAction *act_quit = new QAction(qApp->style()->standardIcon(QStyle::SP_DialogCloseButton), "&Quit", this);
+	QAction *act_save = new QAction(style->standardIcon(QStyle::SP_DialogSaveButton), "&Save...", this);
+	act_save->setStatusTip("Save to a curve file");
+	act_save->setShortcut(QKeySequence::Save);
+	QObject::connect(act_save, SIGNAL(triggered()), this, SLOT(save_curvefile()));
+
+	QAction *act_quit = new QAction(style->standardIcon(QStyle::SP_DialogCloseButton), "&Quit", this);
 	act_quit->setShortcut(QKeySequence(tr("Ctrl+Q", "File|Quit")));
 	QObject::connect(act_quit, SIGNAL(triggered()), this, SLOT(close()));
 
 	// menus
 	QMenu *mfile = menuBar()->addMenu("&File");
+	mfile->addAction(act_new);
 	mfile->addAction(act_open);
+	mfile->addAction(act_save);
+	mfile->addSeparator();
 	mfile->addAction(act_quit);
 
 	// toolbars
 	QToolBar *tfile = addToolBar("&File");
+	tfile->addAction(act_new);
 	tfile->addAction(act_open);
+	tfile->addAction(act_save);
+	tfile->addSeparator();
 
 	statusBar();
 	show();
+}
+
+void MainWindow::clear_curves()
+{
+	app_tool_clear();
 }
 
 void MainWindow::open_curvefile()
@@ -63,6 +86,16 @@ void MainWindow::open_curvefile()
 			glview->update();
 		} else {
 			QMessageBox::critical(this, "Failed to open file!", "Failed to load curves from: " + fname);
+		}
+	}
+}
+
+void MainWindow::save_curvefile()
+{
+	QString fname = QFileDialog::getSaveFileName(this, "Save curve file", QString(), "Curves (*.curves)");
+	if(!fname.isNull()) {
+		if(!app_tool_save(qPrintable(fname))) {
+			QMessageBox::critical(this, "Failed to save file!", "Failed to save file: " + fname);
 		}
 	}
 }

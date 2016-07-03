@@ -11,7 +11,9 @@ private:
 	Q_OBJECT
 
 private slots:
+	void clear_curves();
 	void open_curvefile();
+	void save_curvefile();
 
 public:
 	GLView *glview;
