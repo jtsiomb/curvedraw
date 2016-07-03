@@ -1,14 +1,5 @@
 #include <stdlib.h>
-#include <QApplication>
 #include <QtWidgets>
-/*#include <QMouseEvent>
-#include <QAction>
-#include <QMenu>
-#include <QMenuBar>
-#include <QToolBar>
-#include <QStyle>
-#include <QFileDialog>
-*/
 #include "main_qt.h"
 #include "app.h"
 
