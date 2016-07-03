@@ -43,12 +43,13 @@ endif()
 
 
 if(build_qtgui)
-	list(APPEND src "${CMAKE_CURRENT_SOURCE_DIR}/src/main_qt.cc")
+	list(APPEND src src/main_qt.cc res.qrc)
 	set(libs Qt5::Widgets Qt5::OpenGL)
 	set(CMAKE_AUTOMOC ON)
+	set(CMAKE_AUTORCC ON)
 endif()
 if(build_glut)
-	list(APPEND src "${CMAKE_CURRENT_SOURCE_DIR}/src/main_glut.cc")
+	list(APPEND src src/main_glut.cc)
 	set(libs ${GLUT_LIBRARIES})
 endif()
 

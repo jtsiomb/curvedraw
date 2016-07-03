@@ -21,12 +21,15 @@ MainWindow::MainWindow()
 	setWindowTitle("Curvedraw");
 
 	glview = new GLView;
+	QSurfaceFormat glfmt;
+	glfmt.setSamples(8);
+	glview->setFormat(glfmt);
 	setCentralWidget(glview);
 
 	QStyle *style = qApp->style();
 
 	// actions
-	QAction *act_new = new QAction(style->standardIcon(QStyle::SP_DialogResetButton), "&New", this);
+	QAction *act_new = new QAction(QIcon(":icon_new"), "&New", this);
 	act_new->setStatusTip("Start new curve set");
 	act_new->setShortcut(QKeySequence::New);
 	QObject::connect(act_new, SIGNAL(triggered()), this, SLOT(clear_curves()));
