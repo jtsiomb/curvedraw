@@ -5,6 +5,7 @@
 #include <QOpenGLWidget>
 
 class GLView;
+struct Actions;
 
 class MainWindow : public QMainWindow {
 private:
@@ -14,8 +15,11 @@ private slots:
 	void clear_curves();
 	void open_curvefile();
 	void save_curvefile();
+	void snap_grid();
+	void snap_pt();
 
 public:
+	Actions *act;
 	GLView *glview;
 
 	MainWindow();

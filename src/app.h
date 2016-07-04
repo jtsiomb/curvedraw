@@ -18,6 +18,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef APP_H_
 #define APP_H_
 
+enum SnapMode {
+	SNAP_NONE,
+	SNAP_GRID,
+	SNAP_POINT
+};
+
+
 extern int win_width, win_height;
 extern float win_aspect;
 
@@ -33,6 +40,9 @@ void app_mouse_motion(int x, int y);
 void app_tool_clear();
 bool app_tool_load(const char *fname);
 bool app_tool_save(const char *fname);
+SnapMode app_tool_snap(SnapMode s);
+
+void app_tool_snap_callback(void (*func)(SnapMode, void*), void *cls = 0);
 
 void post_redisplay();	// in main.cc
 

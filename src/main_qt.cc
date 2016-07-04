@@ -3,6 +3,17 @@
 #include "main_qt.h"
 #include "app.h"
 
+struct Actions {
+	QAction *clear;
+	QAction *open;
+	QAction *save;
+	QAction *quit;
+	QAction *snap_grid;
+	QAction *snap_pt;
+};
+
+static void snap_changed(SnapMode s, void *cls);
+
 static MainWindow *win;
 
 int main(int argc, char **argv)
@@ -29,39 +40,58 @@ MainWindow::MainWindow()
 	QStyle *style = qApp->style();
 
 	// actions
-	QAction *act_new = new QAction(QIcon(":icon_new"), "&New", this);
-	act_new->setStatusTip("Start new curve set");
-	act_new->setShortcut(QKeySequence::New);
-	QObject::connect(act_new, SIGNAL(triggered()), this, SLOT(clear_curves()));
+	act = new Actions;
 
-	QAction *act_open = new QAction(style->standardIcon(QStyle::SP_DialogOpenButton), "&Open...", this);
-	act_open->setStatusTip("Open a curve file");
-	act_open->setShortcut(QKeySequence::Open);
-	QObject::connect(act_open, SIGNAL(triggered()), this, SLOT(open_curvefile()));
+	act->clear = new QAction(QIcon(":icon_new"), "&New", this);
+	act->clear->setStatusTip("Start new curve set");
+	act->clear->setShortcut(QKeySequence::New);
+	QObject::connect(act->clear, SIGNAL(triggered()), this, SLOT(clear_curves()));
 
-	QAction *act_save = new QAction(style->standardIcon(QStyle::SP_DialogSaveButton), "&Save...", this);
-	act_save->setStatusTip("Save to a curve file");
-	act_save->setShortcut(QKeySequence::Save);
-	QObject::connect(act_save, SIGNAL(triggered()), this, SLOT(save_curvefile()));
+	act->open = new QAction(style->standardIcon(QStyle::SP_DialogOpenButton), "&Open...", this);
+	act->open->setStatusTip("Open a curve file");
+	act->open->setShortcut(QKeySequence::Open);
+	QObject::connect(act->open, SIGNAL(triggered()), this, SLOT(open_curvefile()));
 
-	QAction *act_quit = new QAction(style->standardIcon(QStyle::SP_DialogCloseButton), "&Quit", this);
-	act_quit->setShortcut(QKeySequence(tr("Ctrl+Q", "File|Quit")));
-	QObject::connect(act_quit, SIGNAL(triggered()), this, SLOT(close()));
+	act->save = new QAction(style->standardIcon(QStyle::SP_DialogSaveButton), "&Save...", this);
+	act->save->setStatusTip("Save to a curve file");
+	act->save->setShortcut(QKeySequence::Save);
+	QObject::connect(act->save, SIGNAL(triggered()), this, SLOT(save_curvefile()));
+
+	act->quit = new QAction(style->standardIcon(QStyle::SP_DialogCloseButton), "&Quit", this);
+	act->quit->setShortcut(QKeySequence(tr("Ctrl+Q", "File|Quit")));
+	QObject::connect(act->quit, SIGNAL(triggered()), this, SLOT(close()));
+
+	act->snap_grid = new QAction(QIcon(":icon_snap_grid"), "Snap to grid", this);
+	act->snap_grid->setStatusTip("Enable grid snapping");
+	act->snap_grid->setCheckable(true);
+	QObject::connect(act->snap_grid, SIGNAL(triggered()), this, SLOT(snap_grid()));
+
+	act->snap_pt = new QAction(QIcon(":icon_snap_pt"), "Snap to points", this);
+	act->snap_pt->setStatusTip("Enable point snapping");
+	act->snap_pt->setCheckable(true);
+	QObject::connect(act->snap_pt, SIGNAL(triggered()), this, SLOT(snap_pt()));
+	app_tool_snap_callback(snap_changed, act);
 
 	// menus
 	QMenu *mfile = menuBar()->addMenu("&File");
-	mfile->addAction(act_new);
-	mfile->addAction(act_open);
-	mfile->addAction(act_save);
+	mfile->addAction(act->clear);
+	mfile->addAction(act->open);
+	mfile->addAction(act->save);
 	mfile->addSeparator();
-	mfile->addAction(act_quit);
+	mfile->addAction(act->quit);
+
+	QMenu *medit = menuBar()->addMenu("&Edit");
+	medit->addAction(act->snap_grid);
+	medit->addAction(act->snap_pt);
 
 	// toolbars
-	QToolBar *tfile = addToolBar("&File");
-	tfile->addAction(act_new);
-	tfile->addAction(act_open);
-	tfile->addAction(act_save);
-	tfile->addSeparator();
+	QToolBar *tbar = addToolBar("Toolbar");
+	tbar->addAction(act->clear);
+	tbar->addAction(act->open);
+	tbar->addAction(act->save);
+	tbar->addSeparator();
+	tbar->addAction(act->snap_grid);
+	tbar->addAction(act->snap_pt);
 
 	statusBar();
 	show();
@@ -94,6 +124,30 @@ void MainWindow::save_curvefile()
 		if(!app_tool_save(qPrintable(fname))) {
 			QMessageBox::critical(this, "Failed to save file!", "Failed to save file: " + fname);
 		}
+	}
+}
+
+void MainWindow::snap_grid()
+{
+	if(act->snap_grid->isChecked()) {
+		app_tool_snap(SNAP_GRID);
+		if(act->snap_pt->isChecked()) {
+			act->snap_pt->setChecked(false);
+		}
+	} else {
+		app_tool_snap(SNAP_NONE);
+	}
+}
+
+void MainWindow::snap_pt()
+{
+	if(act->snap_pt->isChecked()) {
+		app_tool_snap(SNAP_POINT);
+		if(act->snap_grid->isChecked()) {
+			act->snap_grid->setChecked(false);
+		}
+	} else {
+		app_tool_snap(SNAP_NONE);
 	}
 }
 
@@ -217,4 +271,11 @@ void post_redisplay()
 	if(win && win->glview) {
 		win->glview->update();
 	}
+}
+
+static void snap_changed(SnapMode s, void *cls)
+{
+	Actions *act = (Actions*)cls;
+	act->snap_grid->setChecked(s == SNAP_GRID);
+	act->snap_pt->setChecked(s == SNAP_POINT);
 }

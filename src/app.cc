@@ -26,12 +26,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "widgets.h"
 #include "curvefile.h"
 
-enum SnapMode {
-	SNAP_NONE,
-	SNAP_GRID,
-	SNAP_POINT
-};
-
 int win_width, win_height;
 float win_aspect;
 
@@ -60,6 +54,10 @@ static int hover_pidx = -1;	// hovered over point
 static Label *weight_label;	// floating label for the cp weight
 
 static Vector2 mouse_pointer;
+
+// state change callbacks
+static void (*snap_change_callback)(SnapMode, void*);
+static void *snap_change_callback_cls;
 
 
 bool app_init(int argc, char **argv)
@@ -244,48 +242,6 @@ void app_reshape(int x, int y)
 	glOrtho(-win_aspect, win_aspect, -1, 1, -1, 1);
 }
 
-void app_tool_clear()
-{
-	for(size_t i=0; i<curves.size(); i++) {
-		delete curves[i];
-	}
-	curves.clear();
-	delete new_curve;
-	sel_curve = new_curve = hover_curve = 0;
-	sel_pidx = -1;
-	hover_pidx = -1;
-}
-
-bool app_tool_load(const char *fname)
-{
-	std::list<Curve*> clist = load_curves(fname);
-	if(clist.empty()) {
-		fprintf(stderr, "failed to load curves from: %s\n", fname);
-		return false;
-	}
-
-	app_tool_clear();
-
-	int num = 0;
-	std::list<Curve*>::iterator it = clist.begin();
-	while(it != clist.end()) {
-		curves.push_back(*it++);
-		++num;
-	}
-	printf("imported %d curves from %s\n", num, fname);
-	return true;
-}
-
-bool app_tool_save(const char *fname)
-{
-	if(!save_curves(fname, &curves[0], (int)curves.size())) {
-		fprintf(stderr, "failed to export curves to %s\n", fname);
-		return false;
-	}
-	printf("exported %d curves to %s\n", (int)curves.size(), fname);
-	return true;
-}
-
 void app_keyboard(int key, bool pressed)
 {
 	if(pressed) {
@@ -364,11 +320,11 @@ void app_keyboard(int key, bool pressed)
 
 	switch(key) {
 	case 's':
-		snap_mode = pressed ? SNAP_GRID : SNAP_NONE;
+		app_tool_snap(pressed ? SNAP_GRID : SNAP_NONE);
 		break;
 
 	case 'S':
-		snap_mode = pressed ? SNAP_POINT : SNAP_NONE;
+		app_tool_snap(pressed ? SNAP_POINT : SNAP_NONE);
 		break;
 
 	default:
@@ -698,4 +654,64 @@ static int curve_index(const Curve *curve)
 		}
 	}
 	return -1;
+}
+
+
+// ---- app tool functions ----
+void app_tool_clear()
+{
+	for(size_t i=0; i<curves.size(); i++) {
+		delete curves[i];
+	}
+	curves.clear();
+	delete new_curve;
+	sel_curve = new_curve = hover_curve = 0;
+	sel_pidx = -1;
+	hover_pidx = -1;
+}
+
+bool app_tool_load(const char *fname)
+{
+	std::list<Curve*> clist = load_curves(fname);
+	if(clist.empty()) {
+		fprintf(stderr, "failed to load curves from: %s\n", fname);
+		return false;
+	}
+
+	app_tool_clear();
+
+	int num = 0;
+	std::list<Curve*>::iterator it = clist.begin();
+	while(it != clist.end()) {
+		curves.push_back(*it++);
+		++num;
+	}
+	printf("imported %d curves from %s\n", num, fname);
+	return true;
+}
+
+bool app_tool_save(const char *fname)
+{
+	if(!save_curves(fname, &curves[0], (int)curves.size())) {
+		fprintf(stderr, "failed to export curves to %s\n", fname);
+		return false;
+	}
+	printf("exported %d curves to %s\n", (int)curves.size(), fname);
+	return true;
+}
+
+SnapMode app_tool_snap(SnapMode s)
+{
+	SnapMode prev = snap_mode;
+	snap_mode = s;
+	if(snap_change_callback) {
+		snap_change_callback(snap_mode, snap_change_callback_cls);
+	}
+	return prev;
+}
+
+void app_tool_snap_callback(void (*func)(SnapMode, void*), void *cls)
+{
+	snap_change_callback = func;
+	snap_change_callback_cls = cls;
 }
