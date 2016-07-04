@@ -19,8 +19,12 @@ See COPYING for details.
 You need to install the following libraries before compiling curvedraw:
  - libvmath: https://github.com/jtsiomb/libvmath
  - libdrawtext: https://github.com/jtsiomb/libdrawtext
- - GLEW: http://glew.sourceforge.net
- - GLUT: http://freeglut.sourceforge.net
+ - Qt 5 (optional): http://www.qt.io
+ - GLUT (optional): http://freeglut.sourceforge.net
+
+You need to have at least one of the dependencies marked as optional, to build
+either the full GUI (uses Qt), or the simple hotkey UI (uses GLUT) version of
+curvedraw.
 
 Before building, if you intend to build the Qt GUI version of curvedraw, make
 sure you have the `data` directory in the project root. The data directory is
