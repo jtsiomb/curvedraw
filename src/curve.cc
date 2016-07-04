@@ -85,8 +85,7 @@ void Curve::insert_point(const Vector4 &p)
 	if(t < 0 || t >= 1.0) {
 		add_point(p);
 	} else {
-		int after = (int)(t * size());
-		printf("inserting (%g) after %d\n", t, after);
+		int after = (int)(t * (size() - 1));
 		cp.insert(cp.begin() + after + 1, p);
 	}
 	inval_bounds();

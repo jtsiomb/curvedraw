@@ -579,7 +579,6 @@ static void on_click(int bn, float u, float v)
 			float proj_t = sel_curve->proj_param(uv3);
 
 			if(proj_t >= 0.0 && proj_t < 1.0) {
-				printf("proj_t = %g\n", proj_t);
 				// insert somewhere in the middle
 				sel_curve->insert_point(sel_curve->interpolate(proj_t));
 			} else {
