@@ -266,6 +266,11 @@ void GLView::mouseMoveEvent(QMouseEvent *ev)
 	app_mouse_motion(ev->x(), ev->y());
 }
 
+void GLView::wheelEvent(QWheelEvent *ev)
+{
+	app_mouse_wheel(ev->angleDelta().y() / 15);
+}
+
 void post_redisplay()
 {
 	if(win && win->glview) {

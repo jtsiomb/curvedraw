@@ -1,6 +1,6 @@
 /*
 curvedraw - a simple program to draw curves
-Copyright (C) 2015  John Tsiombikas <nuclear@member.fsf.org>
+Copyright (C) 2015-2016  John Tsiombikas <nuclear@member.fsf.org>
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -76,5 +76,11 @@ static void keyup(unsigned char key, int x, int y)
 
 static void mouse(int bn, int st, int x, int y)
 {
-	app_mouse_button(bn - GLUT_LEFT_BUTTON, st == GLUT_DOWN, x, y);
+	if(bn == 3 || bn == 4) {
+		if(st == GLUT_DOWN) {
+			app_mouse_wheel(bn == 3 ? 3 : -3);
+		}
+	} else {
+		app_mouse_button(bn - GLUT_LEFT_BUTTON, st == GLUT_DOWN, x, y);
+	}
 }

@@ -37,6 +37,7 @@ protected:
 	void mousePressEvent(QMouseEvent *ev);
 	void mouseReleaseEvent(QMouseEvent *ev);
 	void mouseMoveEvent(QMouseEvent *ev);
+	void wheelEvent(QWheelEvent *ev);
 
 public:
 	GLView();

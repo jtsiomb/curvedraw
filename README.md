@@ -11,7 +11,7 @@ modelling (extrusion or surfaces of revolution), for animation paths, etc.
 
 License
 -------
-Copyright (C) 2015 - 2016  John Tsiombikas <nuclear@member.fsf.org>
+Copyright (C) 2015-2016  John Tsiombikas <nuclear@member.fsf.org>
 
 This program is free software. Feel free to use it, modify it and/or
 redistribute it under the terms of the GNU General Public License version 3 or
@@ -84,7 +84,7 @@ Keys:
 
 Viewport:
  - Drag with the left or middle mouse button to pan.
- - Drag up or down with the right mouse button to zoom.
+ - Drag up/down with the right mouse button, or use the mouse wheel to zoom.
 
 Curves file format
 ------------------

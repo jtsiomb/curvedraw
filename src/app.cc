@@ -1,6 +1,6 @@
 /*
 curvedraw - a simple program to draw curves
-Copyright (C) 2015  John Tsiombikas <nuclear@member.fsf.org>
+Copyright (C) 2015-2016  John Tsiombikas <nuclear@member.fsf.org>
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -560,6 +560,14 @@ void app_mouse_motion(int x, int y)
 			}
 		}
 	}
+}
+
+void app_mouse_wheel(int rot)
+{
+	view_scale += (float)rot * view_scale * 0.025;
+	if(view_scale < 1e-4) view_scale = 1e-4;
+	calc_view_matrix();
+	post_redisplay();
 }
 
 static void on_click(int bn, float u, float v)
