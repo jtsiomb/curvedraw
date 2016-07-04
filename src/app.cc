@@ -69,6 +69,8 @@ bool app_init(int argc, char **argv)
 	//glewInit();
 
 	glEnable(GL_MULTISAMPLE);
+	glGetError();	// eat the error if multisampling isn't supported
+
 	glEnable(GL_CULL_FACE);
 	glEnable(GL_POINT_SMOOTH);
 

@@ -53,8 +53,11 @@ if(build_glut)
 	set(libs ${GLUT_LIBRARIES})
 endif()
 
+find_library(vmath_lib NAMES vmath libvmath)
+find_library(dtx_lib NAMES drawtext libdrawtext)
+
 add_executable(curvedraw ${src} ${hdr})
 set_target_properties(curvedraw PROPERTIES CXX_STANDARD 11)
-target_link_libraries(curvedraw ${libs} -lvmath -ldrawtext ${OPENGL_LIBRARIES})
+target_link_libraries(curvedraw ${libs} ${vmath_lib} ${dtx_lib} ${OPENGL_LIBRARIES})
 
 install(TARGETS curvedraw RUNTIME DESTINATION bin)

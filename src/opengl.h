@@ -1,6 +1,6 @@
 /*
 curvedraw - a simple program to draw curves
-Copyright (C) 2015  John Tsiombikas <nuclear@member.fsf.org>
+Copyright (C) 2015-2016  John Tsiombikas <nuclear@member.fsf.org>
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -18,7 +18,20 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef OPENGL_H_
 #define OPENGL_H_
 
-//#include <GL/glew.h>
+#ifdef WIN32
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+#include <windows.h>
+#endif
+
+#ifdef __APPLE__
+#include <OpenGL/gl.h>
+#else
 #include <GL/gl.h>
+#endif
+
+#ifndef GL_MULTISAMPLE
+#define GL_MULTISAMPLE 0x809D
+#endif
 
 #endif	// OPENGL_H_
