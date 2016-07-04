@@ -264,20 +264,7 @@ void app_keyboard(int key, bool pressed)
 
 		case '\b':
 		case 127:	/* delete */
-			if(new_curve) {
-				delete new_curve;
-				new_curve = 0;
-				post_redisplay();
-			} else if(sel_curve) {
-				int cidx = curve_index(sel_curve);
-				assert(cidx != -1);
-				curves.erase(curves.begin() + cidx);
-
-				delete sel_curve;
-				sel_curve = 0;
-				sel_pidx = -1;
-				post_redisplay();
-			}
+			app_tool_delete();
 			break;
 
 		case '1':
@@ -733,6 +720,24 @@ CurveType app_tool_type(CurveType type)
 		type_change_callback(type, type_change_callback_cls);
 	}
 	return prev;
+}
+
+void app_tool_delete()
+{
+	if(new_curve) {
+		delete new_curve;
+		new_curve = 0;
+		post_redisplay();
+	} else if(sel_curve) {
+		int cidx = curve_index(sel_curve);
+		assert(cidx != -1);
+		curves.erase(curves.begin() + cidx);
+
+		delete sel_curve;
+		sel_curve = 0;
+		sel_pidx = -1;
+		post_redisplay();
+	}
 }
 
 void app_tool_snap_callback(void (*func)(SnapMode, void*), void *cls)

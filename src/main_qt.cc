@@ -5,6 +5,7 @@
 
 struct Actions {
 	QAction *clear, *open, *save;
+	QAction *del;
 	QAction *quit;
 	QAction *snap_grid, *snap_pt;
 	QAction *polyline, *hermite, *bspline;
@@ -64,6 +65,10 @@ MainWindow::MainWindow()
 	act->quit->setShortcut(QKeySequence(tr("Ctrl+Q", "File|Quit")));
 	QObject::connect(act->quit, &QAction::triggered, this, &MainWindow::close);
 
+	act->del = new QAction(style->standardIcon(QStyle::SP_TrashIcon), "Delete curve", this);
+	act->del->setStatusTip("Delete selected curve (hotkey: delete/backspace)");
+	QObject::connect(act->del, &QAction::triggered, this, &MainWindow::del_curve);
+
 	act->snap_grid = new QAction(QIcon(":icon_snap_grid"), "Snap to grid", this);
 	act->snap_grid->setStatusTip("Snap to grid (hotkey: S)");
 	act->snap_grid->setCheckable(true);
@@ -99,6 +104,8 @@ MainWindow::MainWindow()
 	mfile->addAction(act->quit);
 
 	QMenu *medit = menuBar()->addMenu("&Edit");
+	medit->addAction(act->del);
+	medit->addSeparator();
 	medit->addAction(act->polyline);
 	medit->addAction(act->hermite);
 	medit->addAction(act->bspline);
@@ -111,6 +118,8 @@ MainWindow::MainWindow()
 	tbar->addAction(act->clear);
 	tbar->addAction(act->open);
 	tbar->addAction(act->save);
+	tbar->addSeparator();
+	tbar->addAction(act->del);
 	tbar->addSeparator();
 	tbar->addAction(act->polyline);
 	tbar->addAction(act->hermite);
@@ -194,6 +203,11 @@ void MainWindow::curve_type(int type)
 	}
 
 	app_tool_type((CurveType)type);
+}
+
+void MainWindow::del_curve()
+{
+	app_tool_delete();
 }
 
 // ---- GLView implementation ----
