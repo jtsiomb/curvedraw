@@ -1,21 +1,25 @@
-# Curve Draw
+Curve Draw
+==========
 
 ![curvedraw](http://nuclear.mutantstargoat.com/sw/misc/curves-512.png)
 
-## Overview
+Overview
+--------
 Curvedraw is a simple 2D curve drawing program. I've often found it useful to
 draw curves for use in my graphics programs. They can be useful for procedural
 modelling (extrusion or surfaces of revolution), for animation paths, etc.
 
-## License
-Copyright (C) 2015 John Tsiombikas <nuclear@member.fsf.org>
+License
+-------
+Copyright (C) 2015 - 2016  John Tsiombikas <nuclear@member.fsf.org>
 
 This program is free software. Feel free to use it, modify it and/or
 redistribute it under the terms of the GNU General Public License version 3 or
 (at your option) any later version published by the Free Software Foundation.
 See COPYING for details.
 
-## Dependencies
+Dependencies
+------------
 You need to install the following libraries before compiling curvedraw:
  - libvmath: https://github.com/jtsiomb/libvmath
  - libdrawtext: https://github.com/jtsiomb/libdrawtext
@@ -33,9 +37,32 @@ got the code from the git repository.
 Run the following command in the project root directory, to grab the data files
 from the data repository (subversion):
 
-```svn co svn://mutantstargoat.com/datadirs/curvedraw data```
+`svn co svn://mutantstargoat.com/datadirs/curvedraw data`
 
-## Usage
+Build
+-----
+To build curvedraw you will need cmake version 3.0 or greater.
+
+Create a `build` directory and change into it, then execute cmake to configure
+the project and generate the makefile, or project files for your favourite IDE:
+
+```
+mkdir build
+cd build
+cmake ..
+```
+
+The build system will auto-detect which version of curvedraw to build, based on
+the presence of the optional dependencies (Qt or GLUT) on your system. If you
+need to change the result of the autodetection, or in case cmake failes to
+locate the Qt library, you may use the interactive variants of cmake, `ccmake`
+or `cmake-gui`, to tweak the configuration manually.
+
+After the build files are generated, type `make` to build and `make install` as
+root to install curvedraw system-wide.
+
+Usage
+-----
 Mouse:
  - Click to start adding points to a new curve, then finish it by right clicking.
  - Click on a curve to select it.
@@ -59,7 +86,8 @@ Viewport:
  - Drag with the left or middle mouse button to pan.
  - Drag up or down with the right mouse button to zoom.
 
-## Curves file format
+Curves file format
+------------------
 The files read and written by this program are simple text files. They start
 with the word "GCURVES" in caps in the first line, followed by a series of curve
 blocks of the form::
