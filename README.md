@@ -30,7 +30,6 @@ Before building, if you intend to build the Qt GUI version of curvedraw, make
 sure you have the `data` directory in the project root. The data directory is
 included in release archives, but you will need to download it manually if you
 got the code from the git repository.
-
 Run the following command in the project root directory, to grab the data files
 from the data repository (subversion):
 
