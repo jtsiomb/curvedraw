@@ -18,6 +18,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef APP_H_
 #define APP_H_
 
+#include "curve.h"
+
 enum SnapMode {
 	SNAP_NONE,
 	SNAP_GRID,
@@ -42,8 +44,10 @@ void app_tool_clear();
 bool app_tool_load(const char *fname);
 bool app_tool_save(const char *fname);
 SnapMode app_tool_snap(SnapMode s);
+CurveType app_tool_type(CurveType type);
 
 void app_tool_snap_callback(void (*func)(SnapMode, void*), void *cls = 0);
+void app_tool_type_callback(void (*func)(CurveType, void*), void *cls = 0);
 
 void post_redisplay();	// in main.cc
 

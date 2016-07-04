@@ -4,15 +4,14 @@
 #include "app.h"
 
 struct Actions {
-	QAction *clear;
-	QAction *open;
-	QAction *save;
+	QAction *clear, *open, *save;
 	QAction *quit;
-	QAction *snap_grid;
-	QAction *snap_pt;
+	QAction *snap_grid, *snap_pt;
+	QAction *polyline, *hermite, *bspline;
 };
 
 static void snap_changed(SnapMode s, void *cls);
+static void type_changed(CurveType type, void *cls);
 
 static MainWindow *win;
 
@@ -41,36 +40,55 @@ MainWindow::MainWindow()
 
 	// actions
 	act = new Actions;
+	memset(act, 0, sizeof *act);
+
+	app_tool_snap_callback(snap_changed, act);
+	app_tool_type_callback(type_changed, act);
 
 	act->clear = new QAction(QIcon(":icon_new"), "&New", this);
 	act->clear->setStatusTip("Start new curve set");
 	act->clear->setShortcut(QKeySequence::New);
-	QObject::connect(act->clear, SIGNAL(triggered()), this, SLOT(clear_curves()));
+	QObject::connect(act->clear, &QAction::triggered, this, &MainWindow::clear_curves);
 
 	act->open = new QAction(style->standardIcon(QStyle::SP_DialogOpenButton), "&Open...", this);
 	act->open->setStatusTip("Open a curve file");
 	act->open->setShortcut(QKeySequence::Open);
-	QObject::connect(act->open, SIGNAL(triggered()), this, SLOT(open_curvefile()));
+	QObject::connect(act->open, &QAction::triggered, this, &MainWindow::open_curvefile);
 
 	act->save = new QAction(style->standardIcon(QStyle::SP_DialogSaveButton), "&Save...", this);
 	act->save->setStatusTip("Save to a curve file");
 	act->save->setShortcut(QKeySequence::Save);
-	QObject::connect(act->save, SIGNAL(triggered()), this, SLOT(save_curvefile()));
+	QObject::connect(act->save, &QAction::triggered, this, &MainWindow::save_curvefile);
 
 	act->quit = new QAction(style->standardIcon(QStyle::SP_DialogCloseButton), "&Quit", this);
 	act->quit->setShortcut(QKeySequence(tr("Ctrl+Q", "File|Quit")));
-	QObject::connect(act->quit, SIGNAL(triggered()), this, SLOT(close()));
+	QObject::connect(act->quit, &QAction::triggered, this, &MainWindow::close);
 
 	act->snap_grid = new QAction(QIcon(":icon_snap_grid"), "Snap to grid", this);
-	act->snap_grid->setStatusTip("Enable grid snapping");
+	act->snap_grid->setStatusTip("Snap to grid (hotkey: S)");
 	act->snap_grid->setCheckable(true);
-	QObject::connect(act->snap_grid, SIGNAL(triggered()), this, SLOT(snap_grid()));
+	QObject::connect(act->snap_grid, &QAction::triggered, this, &MainWindow::snap_grid);
 
 	act->snap_pt = new QAction(QIcon(":icon_snap_pt"), "Snap to points", this);
-	act->snap_pt->setStatusTip("Enable point snapping");
+	act->snap_pt->setStatusTip("Snap to point (hotkey: Shift-S)");
 	act->snap_pt->setCheckable(true);
-	QObject::connect(act->snap_pt, SIGNAL(triggered()), this, SLOT(snap_pt()));
-	app_tool_snap_callback(snap_changed, act);
+	QObject::connect(act->snap_pt, &QAction::triggered, this, &MainWindow::snap_pt);
+
+	act->polyline = new QAction(QIcon(":icon_polyline"), "Polyline", this);
+	act->polyline->setStatusTip("Polyline curve type (hotkey: 1)");
+	act->polyline->setCheckable(true);
+	QObject::connect(act->polyline, &QAction::triggered, [this](){this->curve_type(CURVE_LINEAR);});
+
+	act->hermite = new QAction(QIcon(":icon_hermite"), "Hermite Spline", this);
+	act->hermite->setStatusTip("Hermite spline curve type (hotkey: 2)");
+	act->hermite->setCheckable(true);
+	act->hermite->setChecked(true);	// XXX sync with default in app.cc
+	QObject::connect(act->hermite, &QAction::triggered, [this](){this->curve_type(CURVE_HERMITE);});
+
+	act->bspline = new QAction(QIcon(":icon_bspline"), "B-Spline", this);
+	act->bspline->setStatusTip("B-Spline curve type (hotkey: 3)");
+	act->bspline->setCheckable(true);
+	QObject::connect(act->bspline, &QAction::triggered, [this](){this->curve_type(CURVE_BSPLINE);});
 
 	// menus
 	QMenu *mfile = menuBar()->addMenu("&File");
@@ -81,6 +99,10 @@ MainWindow::MainWindow()
 	mfile->addAction(act->quit);
 
 	QMenu *medit = menuBar()->addMenu("&Edit");
+	medit->addAction(act->polyline);
+	medit->addAction(act->hermite);
+	medit->addAction(act->bspline);
+	medit->addSeparator();
 	medit->addAction(act->snap_grid);
 	medit->addAction(act->snap_pt);
 
@@ -89,6 +111,10 @@ MainWindow::MainWindow()
 	tbar->addAction(act->clear);
 	tbar->addAction(act->open);
 	tbar->addAction(act->save);
+	tbar->addSeparator();
+	tbar->addAction(act->polyline);
+	tbar->addAction(act->hermite);
+	tbar->addAction(act->bspline);
 	tbar->addSeparator();
 	tbar->addAction(act->snap_grid);
 	tbar->addAction(act->snap_pt);
@@ -149,6 +175,25 @@ void MainWindow::snap_pt()
 	} else {
 		app_tool_snap(SNAP_NONE);
 	}
+}
+
+void MainWindow::curve_type(int type)
+{
+	// XXX keep in sync with enum CurveType
+	QAction *type_act[3] = {act->polyline, act->hermite, act->bspline};
+
+	if(!type_act[type]->isChecked()) {
+		// no direct unchecking
+		type_act[type]->setChecked(true);
+		return;
+	}
+
+	for(int i=0; i<3; i++) {
+		if(i == type) continue;
+		type_act[i]->setChecked(false);
+	}
+
+	app_tool_type((CurveType)type);
 }
 
 // ---- GLView implementation ----
@@ -283,4 +328,12 @@ static void snap_changed(SnapMode s, void *cls)
 	Actions *act = (Actions*)cls;
 	act->snap_grid->setChecked(s == SNAP_GRID);
 	act->snap_pt->setChecked(s == SNAP_POINT);
+}
+
+static void type_changed(CurveType type, void *cls)
+{
+	Actions *act = (Actions*)cls;
+	act->polyline->setChecked(type == CURVE_LINEAR);
+	act->hermite->setChecked(type == CURVE_HERMITE);
+	act->bspline->setChecked(type == CURVE_BSPLINE);
 }

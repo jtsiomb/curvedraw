@@ -33,6 +33,7 @@ static void draw_grid(float sz, float sep, float alpha = 1.0f);
 static void draw_curve(const Curve *curve);
 static void on_click(int bn, float u, float v);
 static int curve_index(const Curve *curve);
+static Vector2 snap(const Vector2 &p);
 
 // viewport control
 static Vector2 view_pan;
@@ -41,6 +42,7 @@ static Matrix4x4 view_matrix;
 
 static float grid_size = 1.0;
 static SnapMode snap_mode;
+static CurveType curve_type = CURVE_HERMITE;
 
 static bool show_bounds;
 
@@ -58,6 +60,8 @@ static Vector2 mouse_pointer;
 // state change callbacks
 static void (*snap_change_callback)(SnapMode, void*);
 static void *snap_change_callback_cls;
+static void (*type_change_callback)(CurveType, void*);
+static void *type_change_callback_cls;
 
 
 bool app_init(int argc, char **argv)
@@ -279,14 +283,7 @@ void app_keyboard(int key, bool pressed)
 		case '1':
 		case '2':
 		case '3':
-			if(sel_curve) {
-				sel_curve->set_type((CurveType)((int)CURVE_LINEAR + key - '1'));
-				post_redisplay();
-			}
-			if(new_curve) {
-				new_curve->set_type((CurveType)((int)CURVE_LINEAR + key - '1'));
-				post_redisplay();
-			}
+			app_tool_type((CurveType)((int)CURVE_LINEAR + key - '1'));
 			break;
 
 		case 'b':
@@ -605,6 +602,7 @@ static void on_click(int bn, float u, float v)
 			// otherwise, click starts a new curve
 			if(!new_curve) {
 				new_curve = new Curve;
+				new_curve->set_type(curve_type);
 				new_curve->add_point(uv);
 			}
 			new_curve->add_point(uv);
@@ -717,8 +715,34 @@ SnapMode app_tool_snap(SnapMode s)
 	return prev;
 }
 
+CurveType app_tool_type(CurveType type)
+{
+	CurveType prev = curve_type;
+	curve_type = type;
+
+	if(sel_curve) {
+		sel_curve->set_type(type);
+		post_redisplay();
+	}
+	if(new_curve) {
+		new_curve->set_type(type);
+		post_redisplay();
+	}
+
+	if(type_change_callback) {
+		type_change_callback(type, type_change_callback_cls);
+	}
+	return prev;
+}
+
 void app_tool_snap_callback(void (*func)(SnapMode, void*), void *cls)
 {
 	snap_change_callback = func;
 	snap_change_callback_cls = cls;
+}
+
+void app_tool_type_callback(void (*func)(CurveType, void*), void *cls)
+{
+	type_change_callback = func;
+	type_change_callback_cls = cls;
 }

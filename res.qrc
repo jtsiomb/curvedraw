@@ -4,5 +4,8 @@
 	<file alias="icon_new">data/icons/new-64.png</file>
 	<file alias="icon_snap_grid">data/icons/snap_grid-64.png</file>
 	<file alias="icon_snap_pt">data/icons/snap_pt-64.png</file>
+	<file alias="icon_polyline">data/icons/polyline-64.png</file>
+	<file alias="icon_hermite">data/icons/hermite-64.png</file>
+	<file alias="icon_bspline">data/icons/bspline-64.png</file>
 </qresource>
 </RCC>

@@ -17,6 +17,7 @@ private slots:
 	void save_curvefile();
 	void snap_grid();
 	void snap_pt();
+	void curve_type(int type);
 
 public:
 	Actions *act;
