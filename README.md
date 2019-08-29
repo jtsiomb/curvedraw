@@ -22,6 +22,7 @@ Dependencies
 ------------
 You need to install the following libraries before compiling curvedraw:
  - libvmath: https://github.com/jtsiomb/libvmath
+ - libimago: https://github.com/jtsiomb/libimago
  - libdrawtext: https://github.com/jtsiomb/libdrawtext
  - Qt 5 (optional): http://www.qt.io
  - GLUT (optional): http://freeglut.sourceforge.net
