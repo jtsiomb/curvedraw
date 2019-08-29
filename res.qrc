@@ -7,5 +7,9 @@
 	<file alias="icon_polyline">data/icons/polyline-64.png</file>
 	<file alias="icon_hermite">data/icons/hermite-64.png</file>
 	<file alias="icon_bspline">data/icons/bspline-64.png</file>
+	<file alias="icon_openbg">data/icons/openbg-64.png</file>
+	<file alias="icon_clearbg">data/icons/clearbg-64.png</file>
+	<file alias="icon_bbox">data/icons/showbbox-64.png</file>
+	<file alias="icon_norm">data/icons/normalize-64.png</file>
 </qresource>
 </RCC>

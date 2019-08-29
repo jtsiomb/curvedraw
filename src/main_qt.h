@@ -15,6 +15,7 @@ private slots:
 	void clear_curves();
 	void open_curvefile();
 	void save_curvefile();
+	void open_bgimage();
 	void snap_grid();
 	void snap_pt();
 	void curve_type(int type);

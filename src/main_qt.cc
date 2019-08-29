@@ -9,10 +9,13 @@ struct Actions {
 	QAction *quit;
 	QAction *snap_grid, *snap_pt;
 	QAction *polyline, *hermite, *bspline;
+	QAction *open_bg, *clear_bg;
+	QAction *show_bbox;
 };
 
 static void snap_changed(SnapMode s, void *cls);
 static void type_changed(CurveType type, void *cls);
+static void showbbox_changed(bool show, void *cls);
 
 static MainWindow *win;
 
@@ -45,6 +48,7 @@ MainWindow::MainWindow()
 
 	app_tool_snap_callback(snap_changed, act);
 	app_tool_type_callback(type_changed, act);
+	app_tool_showbbox_callback(showbbox_changed, act);
 
 	act->clear = new QAction(QIcon(":icon_new"), "&New", this);
 	act->clear->setStatusTip("Start new curve set");
@@ -95,6 +99,21 @@ MainWindow::MainWindow()
 	act->bspline->setCheckable(true);
 	QObject::connect(act->bspline, &QAction::triggered, [this](){this->curve_type(CURVE_BSPLINE);});
 
+	act->open_bg = new QAction(QIcon(":icon_openbg"), "Open background image", this);
+	act->open_bg->setStatusTip("Open background image (hotkey: i)");
+	QObject::connect(act->open_bg, &QAction::triggered, this, &MainWindow::open_bgimage);
+
+	act->clear_bg = new QAction(QIcon(":icon_clearbg"), "Clear background image", this);
+	act->clear_bg->setStatusTip("Clear background image");
+	act->clear_bg->setEnabled(false);
+	QObject::connect(act->clear_bg, &QAction::triggered, this, [this](){app_tool_bgimage(0); act->clear_bg->setEnabled(false);});
+
+	act->show_bbox = new QAction(QIcon(":icon_bbox"), "Show bounding box", this);
+	act->show_bbox->setStatusTip("Show curve bounding box");
+	act->show_bbox->setCheckable(true);
+	act->show_bbox->setChecked(false);
+	QObject::connect(act->show_bbox, &QAction::triggered, [this](){app_tool_showbbox(act->show_bbox->isChecked());});
+
 	// menus
 	QMenu *mfile = menuBar()->addMenu("&File");
 	mfile->addAction(act->clear);
@@ -113,6 +132,12 @@ MainWindow::MainWindow()
 	medit->addAction(act->snap_grid);
 	medit->addAction(act->snap_pt);
 
+	QMenu *mview = menuBar()->addMenu("&View");
+	mview->addAction(act->open_bg);
+	mview->addAction(act->clear_bg);
+	mview->addSeparator();
+	mview->addAction(act->show_bbox);
+
 	// toolbars
 	QToolBar *tbar = addToolBar("Toolbar");
 	tbar->addAction(act->clear);
@@ -127,6 +152,9 @@ MainWindow::MainWindow()
 	tbar->addSeparator();
 	tbar->addAction(act->snap_grid);
 	tbar->addAction(act->snap_pt);
+	tbar->addSeparator();
+	tbar->addAction(act->open_bg);
+	tbar->addAction(act->clear_bg);
 
 	statusBar();
 	show();
@@ -158,6 +186,19 @@ void MainWindow::save_curvefile()
 		}
 		if(!app_tool_save(qPrintable(fname))) {
 			QMessageBox::critical(this, "Failed to save file!", "Failed to save file: " + fname);
+		}
+	}
+}
+
+void MainWindow::open_bgimage()
+{
+	QString fname = QFileDialog::getOpenFileName(this, "Open background image", QString(), "Images (*.png *.jpg *.jpeg *.tga *.targa *.ppm *.rgbe)");
+	if(!fname.isNull()) {
+		if(app_tool_bgimage(qPrintable(fname))) {
+			glview->update();
+			act->clear_bg->setEnabled(true);
+		} else {
+			QMessageBox::critical(this, "Failed to open file!", "Failed to load background image: " + fname);
 		}
 	}
 }
@@ -350,4 +391,10 @@ static void type_changed(CurveType type, void *cls)
 	act->polyline->setChecked(type == CURVE_LINEAR);
 	act->hermite->setChecked(type == CURVE_HERMITE);
 	act->bspline->setChecked(type == CURVE_BSPLINE);
+}
+
+static void showbbox_changed(bool show, void *cls)
+{
+	Actions *act = (Actions*)cls;
+	act->show_bbox->setChecked(show);
 }

@@ -66,6 +66,8 @@ static void (*snap_change_callback)(SnapMode, void*);
 static void *snap_change_callback_cls;
 static void (*type_change_callback)(CurveType, void*);
 static void *type_change_callback_cls;
+static void (*showbbox_callback)(bool, void*);
+static void *showbbox_callback_cls;
 
 
 bool app_init(int argc, char **argv)
@@ -310,8 +312,7 @@ void app_keyboard(int key, bool pressed)
 
 		case 'b':
 		case 'B':
-			show_bounds = !show_bounds;
-			post_redisplay();
+			app_tool_showbbox(!show_bounds);
 			break;
 
 		case 'n':
@@ -736,18 +737,21 @@ bool app_tool_save(const char *fname)
 
 bool app_tool_bgimage(const char *fname)
 {
-	unsigned int tex;
+	unsigned int tex = 0;
 
-	if(!(tex = img_gltexture_load(fname))) {
-		fprintf(stderr, "failed to load background image: %s\n", fname);
-		return false;
+	if(fname) {
+		if(!(tex = img_gltexture_load(fname))) {
+			fprintf(stderr, "failed to load background image: %s\n", fname);
+			return false;
+		}
+		printf("loaded background image: %s\n", fname);
 	}
 
 	if(tex_bg) {
 		glDeleteTextures(1, &tex_bg);
 	}
 	tex_bg = tex;
-	printf("loaded background image: %s\n", fname);
+	post_redisplay();
 	return true;
 }
 
@@ -799,6 +803,16 @@ void app_tool_delete()
 	}
 }
 
+void app_tool_showbbox(bool show)
+{
+	show_bounds = show;
+	post_redisplay();
+
+	if(showbbox_callback) {
+		showbbox_callback(show, showbbox_callback_cls);
+	}
+}
+
 void app_tool_snap_callback(void (*func)(SnapMode, void*), void *cls)
 {
 	snap_change_callback = func;
@@ -809,4 +823,10 @@ void app_tool_type_callback(void (*func)(CurveType, void*), void *cls)
 {
 	type_change_callback = func;
 	type_change_callback_cls = cls;
+}
+
+void app_tool_showbbox_callback(void (*func)(bool, void*), void *cls)
+{
+	showbbox_callback = func;
+	showbbox_callback_cls = cls;
 }
