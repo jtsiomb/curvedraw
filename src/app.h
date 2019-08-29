@@ -43,6 +43,7 @@ void app_mouse_wheel(int rot);
 void app_tool_clear();
 bool app_tool_load(const char *fname);
 bool app_tool_save(const char *fname);
+bool app_tool_bgimage(const char *fname);
 SnapMode app_tool_snap(SnapMode s);
 CurveType app_tool_type(CurveType type);
 void app_tool_delete();

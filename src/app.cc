@@ -20,6 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <assert.h>
 #include <vector>
 #include <algorithm>
+#include <imago2.h>
 #include "opengl.h"
 #include "app.h"
 #include "curve.h"
@@ -31,6 +32,7 @@ float win_aspect;
 
 static void draw_grid(float sz, float sep, float alpha = 1.0f);
 static void draw_curve(const Curve *curve);
+static void draw_bgimage(float sz, float alpha = 1.0f);
 static void on_click(int bn, float u, float v);
 static int curve_index(const Curve *curve);
 static Vector2 snap(const Vector2 &p);
@@ -56,6 +58,8 @@ static int hover_pidx = -1;	// hovered over point
 static Label *weight_label;	// floating label for the cp weight
 
 static Vector2 mouse_pointer;
+
+static unsigned int tex_bg;
 
 // state change callbacks
 static void (*snap_change_callback)(SnapMode, void*);
@@ -93,6 +97,10 @@ void app_draw()
 	glLoadIdentity();
 	glTranslatef(view_pan.x * view_scale, view_pan.y * view_scale, 0);
 	glScalef(view_scale, view_scale, view_scale);
+
+	if(tex_bg) {
+		draw_bgimage(1.0, 0.5);
+	}
 
 	float max_aspect = std::max(win_aspect, 1.0f / win_aspect);
 	draw_grid(max_aspect, grid_size);
@@ -236,6 +244,31 @@ static void draw_curve(const Curve *curve)
 	glPointSize(1.0);
 }
 
+void draw_bgimage(float sz, float alpha)
+{
+	glPushAttrib(GL_ENABLE_BIT);
+
+	glEnable(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, tex_bg);
+
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	glBegin(GL_QUADS);
+	glColor4f(1, 1, 1, alpha);
+	glTexCoord2f(0, 1);
+	glVertex2f(-1, -1);
+	glTexCoord2f(1, 1);
+	glVertex2f(1, -1);
+	glTexCoord2f(1, 0);
+	glVertex2f(1, 1);
+	glTexCoord2f(0, 0);
+	glVertex2f(-1, 1);
+	glEnd();
+
+	glPopAttrib();
+}
+
 void app_reshape(int x, int y)
 {
 	win_width = x;
@@ -297,6 +330,13 @@ void app_keyboard(int key, bool pressed)
 		case 'l':
 		case 'L':
 			if(app_tool_load("test.curves")) {
+				post_redisplay();
+			}
+			break;
+
+		case 'i':
+		case 'I':
+			if(app_tool_bgimage("bg.png")) {
 				post_redisplay();
 			}
 			break;
@@ -691,6 +731,23 @@ bool app_tool_save(const char *fname)
 		return false;
 	}
 	printf("exported %d curves to %s\n", (int)curves.size(), fname);
+	return true;
+}
+
+bool app_tool_bgimage(const char *fname)
+{
+	unsigned int tex;
+
+	if(!(tex = img_gltexture_load(fname))) {
+		fprintf(stderr, "failed to load background image: %s\n", fname);
+		return false;
+	}
+
+	if(tex_bg) {
+		glDeleteTextures(1, &tex_bg);
+	}
+	tex_bg = tex;
+	printf("loaded background image: %s\n", fname);
 	return true;
 }
 

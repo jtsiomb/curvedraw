@@ -55,9 +55,10 @@ endif()
 
 find_library(vmath_lib NAMES vmath libvmath)
 find_library(dtx_lib NAMES drawtext libdrawtext)
+find_library(imago_lib NAMES imago libimago)
 
 add_executable(curvedraw ${src} ${hdr})
 set_target_properties(curvedraw PROPERTIES CXX_STANDARD 11)
-target_link_libraries(curvedraw ${libs} ${vmath_lib} ${dtx_lib} ${OPENGL_LIBRARIES})
+target_link_libraries(curvedraw ${libs} ${vmath_lib} ${dtx_lib} ${imago_lib} ${OPENGL_LIBRARIES})
 
 install(TARGETS curvedraw RUNTIME DESTINATION bin)
