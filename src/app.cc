@@ -60,6 +60,7 @@ static Label *weight_label;	// floating label for the cp weight
 static Vector2 mouse_pointer;
 
 static unsigned int tex_bg;
+static float bg_aspect = 1.0f;
 
 // state change callbacks
 static void (*snap_change_callback)(SnapMode, void*);
@@ -259,13 +260,13 @@ void draw_bgimage(float sz, float alpha)
 	glBegin(GL_QUADS);
 	glColor4f(1, 1, 1, alpha);
 	glTexCoord2f(0, 1);
-	glVertex2f(-1, -1);
+	glVertex2f(-bg_aspect, -1);
 	glTexCoord2f(1, 1);
-	glVertex2f(1, -1);
+	glVertex2f(bg_aspect, -1);
 	glTexCoord2f(1, 0);
-	glVertex2f(1, 1);
+	glVertex2f(bg_aspect, 1);
 	glTexCoord2f(0, 0);
-	glVertex2f(-1, 1);
+	glVertex2f(-bg_aspect, 1);
 	glEnd();
 
 	glPopAttrib();
@@ -737,6 +738,7 @@ bool app_tool_save(const char *fname)
 
 bool app_tool_bgimage(const char *fname)
 {
+	int width, height;
 	unsigned int tex = 0;
 
 	if(fname) {
@@ -745,6 +747,11 @@ bool app_tool_bgimage(const char *fname)
 			return false;
 		}
 		printf("loaded background image: %s\n", fname);
+
+		glBindTexture(GL_TEXTURE_2D, tex);
+		glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &width);
+		glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &height);
+		bg_aspect = (float)width / (float)height;
 	}
 
 	if(tex_bg) {
